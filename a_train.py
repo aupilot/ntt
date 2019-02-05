@@ -5,6 +5,7 @@ import argparse
 from multiprocessing import freeze_support
 
 import torch.utils.data as data
+from metrics import f1_score
 from torch.optim.lr_scheduler import MultiStepLR
 import torch
 import torch.nn as nn
@@ -13,6 +14,7 @@ from torchsummary import summary
 
 from dataloader import NttDataset
 from logger import Logger
+from net_resnet import SuperNet740
 from net_simple import CNN1
 
 parser = argparse.ArgumentParser(description='train')
@@ -30,6 +32,9 @@ learning_rate_adam = 0.0002
 input_depth = 1
 validation_size = 128
 
+data_dir = './data'
+# data_dir = './data_small'
+
 params_train = {'batch_size': 128,
           'shuffle': True,
           'num_workers': 0}
@@ -38,18 +43,18 @@ params_valid = {'batch_size': 128,
           'num_workers': 0}
 
 
-training_set = NttDataset(folds_total=args.total_folds, root_dir='./data_small', this_fold_no=args.fold, add_noise=False, add_shift=None)
+training_set = NttDataset(folds_total=args.total_folds, root_dir=data_dir, this_fold_no=args.fold, add_noise=False, add_shift=None)
 training_generator = data.DataLoader(training_set, **params_train)
 
 validation_set = Subset(NttDataset(folds_total=args.total_folds, this_fold_no=args.val_fold), range(validation_size))
 validation_generator = data.DataLoader(validation_set, **params_valid)
 
-# CUDA
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 
 if resume_from is None:
-    cnn = CNN1(input_depth=input_depth)
+    # cnn = CNN1(input_depth=input_depth)
+    cnn = SuperNet740(input_depth=input_depth)
     cnn.to(device)
     resume_from = 0
 else:
@@ -117,6 +122,8 @@ def train():
         # === Validation
         cnn.eval()  # Change model to 'eval' mode
         total = 0.0
+        totf1 = 0.0
+        one_hot_converter = torch.eye(6, device=device)
         with torch.set_grad_enabled(False):
             for local_batch, local_labels in validation_generator:
                 # Transfer to GPU
@@ -125,24 +132,29 @@ def train():
                 # Model computations
                 outputs = cnn(batch)
                 loss_val = criterion(outputs, labels.long())
+                f1_val = f1_score(one_hot_converter[labels], torch.exp(outputs))
                 total += loss_val.item()
+                totf1 += f1_val.item()
 
         total = total / len(validation_generator)
+        totf1 = totf1 / len(validation_generator)
 
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             scheduler.step(total)
         else:
             scheduler.step(epoch=epoch)
 
-        print('Loss on validation samples: %f' % total)
+        print(f'Validation Loss: {total} F1: {totf1}')
 
         # === TensorBoard logging ===
         info = {
             'training loss': train_total,
             'validation loss': total,
+            'f1': totf1,
         }
         for tag, value in info.items():
             logger.scalar_summary(tag, value, epoch + 1)
+        logger.writer.flush()
 
         # === save the whole model only if perform better OR every 8th epochs anyway
         if (total < prev_val_loss) or ((epoch + 1) % 8 == 0):

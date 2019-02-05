@@ -42,7 +42,7 @@ class NttDataset(data.Dataset):
                     data[shift:-1] = data[0:datalen-shift]
 
         if self.add_noise:
-            data += np.random.randn(*data.shape) * np.random.rand(1)
+            data += np.random.randn(*data.shape) * np.random.rand(1) * 0.2
         return np.expand_dims(data, 0), self.labels[index].astype(np.int)
 
     def __len__(self):
