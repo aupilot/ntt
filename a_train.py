@@ -38,11 +38,11 @@ params_valid = {'batch_size': 128,
           'num_workers': 0}
 
 
-training_set = NttDataset(folds_total=args.total_folds, this_fold_no=args.fold, add_noise=True, add_shift=None)
+training_set = NttDataset(folds_total=args.total_folds, root_dir='./data_small', this_fold_no=args.fold, add_noise=False, add_shift=None)
 training_generator = data.DataLoader(training_set, **params_train)
 
 validation_set = Subset(NttDataset(folds_total=args.total_folds, this_fold_no=args.val_fold), range(validation_size))
-validation_generator = data.DataLoader(training_set, **params_valid)
+validation_generator = data.DataLoader(validation_set, **params_valid)
 
 # CUDA
 use_cuda = torch.cuda.is_available()
@@ -61,8 +61,8 @@ log_prefix += cnn.name
 log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
-optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00002, nesterov=True)
-# optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00002)
+# optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00002, nesterov=True)
+optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00002)
 scheduler = MultiStepLR(optimizer, milestones=[30, 60, 90], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
@@ -127,7 +127,7 @@ def train():
                 loss_val = criterion(outputs, labels.long())
                 total += loss_val.item()
 
-        total = total / validation_size
+        total = total / len(validation_generator)
 
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             scheduler.step(total)

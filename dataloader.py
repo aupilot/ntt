@@ -21,10 +21,10 @@ class NttDataset(data.Dataset):
         The pieces have min len 2 sec. We split them y short frames L sec. So, the number of frames is not really known,
         but at least 2/L * num pieces.
     """
-    def __init__(self, folds_total=1, this_fold_no=0, frame_len_sec=0.25, add_noise=False, add_shift=False):
+    def __init__(self, root_dir='data', folds_total=1, this_fold_no=0, frame_len_sec=0.25, add_noise=False, add_shift=False):
         self.add_noise = add_noise
         self.add_shift = add_shift
-        loaded = np.load(f"./data/fold_{this_fold_no}_{folds_total}.npz")
+        loaded = np.load(os.path.join(root_dir, f"fold_{this_fold_no}_{folds_total}.npz"))
         self.samples = loaded['cache_data']
         self.labels  = loaded['cache_labels']
         self.num_samples = len(self.labels)
