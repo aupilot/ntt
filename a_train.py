@@ -19,8 +19,8 @@ from net_simple import CNN1
 
 parser = argparse.ArgumentParser(description='train')
 parser.add_argument('-f', '--fold', type=int, default=0)
-parser.add_argument('-v', '--val_fold', type=int, default=1)
-parser.add_argument('-t', '--total_folds', type=int, default=2)
+# parser.add_argument('-v', '--val_fold', type=int, default=1)
+parser.add_argument('-t', '--total_folds', type=int, default=3)
 parser.add_argument('-e', '--epochs', type=int, default=300)
 args = parser.parse_args()
 
@@ -42,11 +42,18 @@ params_valid = {'batch_size': 128,
           'shuffle': False,
           'num_workers': 0}
 
-
-training_set = NttDataset(folds_total=args.total_folds, root_dir=data_dir, this_fold_no=args.fold, add_noise=False, add_shift=None)
+training_set = NttDataset(folds_total=args.total_folds,
+                          root_dir=data_dir,
+                          chunk_exclude=args.fold,
+                          validation=False,
+                          add_noise=False, add_shift=None)
 training_generator = data.DataLoader(training_set, **params_train)
 
-validation_set = Subset(NttDataset(folds_total=args.total_folds, this_fold_no=args.val_fold), range(validation_size))
+validation_set = Subset(NttDataset(folds_total=args.total_folds,
+                                   root_dir=data_dir,
+                                   chunk_exclude=args.fold,
+                                   validation=True,),
+                        range(validation_size))
 validation_generator = data.DataLoader(validation_set, **params_valid)
 
 use_cuda = torch.cuda.is_available()
@@ -68,7 +75,7 @@ logger = Logger('./logs/{}'.format(log_prefix))
 
 # optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00002, nesterov=True)
 optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00002)
-scheduler = MultiStepLR(optimizer, milestones=[30, 60, 90], gamma=0.2)
+scheduler = MultiStepLR(optimizer, milestones=[15, 30, 45], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
 

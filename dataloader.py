@@ -21,12 +21,34 @@ class NttDataset(data.Dataset):
         The pieces have min len 2 sec. We split them y short frames L sec. So, the number of frames is not really known,
         but at least 2/L * num pieces.
     """
-    def __init__(self, root_dir='data', folds_total=1, this_fold_no=0, frame_len_sec=0.25, add_noise=False, add_shift=False):
+    def __init__(self, root_dir='data', folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25, add_noise=False, add_shift=False):
         self.add_noise = add_noise
         self.add_shift = add_shift
-        loaded = np.load(os.path.join(root_dir, f"fold_{this_fold_no}_{folds_total}.npz"))
-        self.samples = loaded['cache_data']
-        self.labels  = loaded['cache_labels']
+        self.samples = None
+
+        # if validation, we only load one chunk chunk_exclude
+        if validation:
+            loaded = np.load(os.path.join(root_dir, f"fold_{chunk_exclude}_{folds_total}.npz"))
+            self.samples = loaded['cache_data']
+            self.labels = loaded['cache_labels']
+        else:
+            # start with the very first chunk
+            if chunk_exclude == 0:
+                i = 1
+            else:
+                i = 0
+            loaded = np.load(os.path.join(root_dir, f"fold_{i}_{folds_total}.npz"))
+            self.samples = loaded['cache_data']
+            self.labels = loaded['cache_labels']
+            # then load the rest
+            for i in range(1, folds_total):
+                if i != chunk_exclude:
+                    loaded = np.load(os.path.join(root_dir, f"fold_{i}_{folds_total}.npz"))
+                    chunk_samples= loaded['cache_data']
+                    chunk_labels = loaded['cache_labels']
+                    self.samples = np.concatenate((self.samples, chunk_samples), axis=0)
+                    self.labels  = np.concatenate((self.labels, chunk_labels), axis=0)
+
         self.num_samples = len(self.labels)
 
     def __getitem__(self, index):
@@ -104,8 +126,8 @@ class NttTestDataset(data.Dataset):
 if __name__ == "__main__":
     params = {'batch_size': 12,
               'shuffle': True,
-              'num_workers': 4}
-    training_set = NttDataset(folds_total=2, this_fold_no=0, add_noise=True)
+              'num_workers': 0}
+    training_set = NttDataset(folds_total=2, chunk_exclude=666, add_noise=True)
     training_generator = data.DataLoader(training_set, **params)
     for local_batch, local_labels in training_generator:
         print(local_batch)

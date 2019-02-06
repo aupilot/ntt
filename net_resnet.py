@@ -39,9 +39,9 @@ class NewBlock2(nn.Module):
 
 
 # skip connections for the second last 2 layers
-class SuperKirNet72(nn.Module):
+class SuperNet72(nn.Module):
     def __init__(self, block, input_depth, num_blocks, num_classes=6, name='No Name', init_with_ae=None):
-        super(SuperKirNet72, self).__init__()
+        super(SuperNet72, self).__init__()
         self.name = name
 
         self.inplanes_before_cat = input_depth
@@ -126,10 +126,10 @@ class SuperKirNet72(nn.Module):
 
 def SuperNet740(input_depth=1, init_with_ae=None):
     # this net has larger receptive field comparing to standard resnet
-    return SuperKirNet72(NewBlock2, input_depth, [2,2,2,2,2],
-                         num_classes=6,
-                         name='SuperNet740 - 72x15 filters, 2-2-2-2-2 layers, skips 3&4, new Block2',
-                         init_with_ae=None)
+    return SuperNet72(NewBlock2, input_depth, [2, 2, 2, 2, 2],
+                      num_classes=6,
+                      name='SuperNet740 - 72x15 filters, 2-2-2-2-2 layers, skips 3&4, new Block2',
+                      init_with_ae=None)
 
 
 def test():
