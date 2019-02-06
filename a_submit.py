@@ -52,7 +52,7 @@ if __name__ == '__main__':
                 print('Batch {:d} / {:d}, {:.1f} seconds'.format(i, len(test_generator), tock - tick))
                 tick = time.time()
 
-    with open('answer.csv', 'w') as f:
+    with open('answer.tsv', 'w') as f:
         w = csv.DictWriter(f, fieldnames=answer[0].keys(), delimiter='\t',lineterminator='\n')
         w.writeheader()
         w.writerows(answer)

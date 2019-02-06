@@ -59,9 +59,10 @@ class NttDataset(data.Dataset):
                 datalen = len(data)
                 shift = np.random.randint(-datalen*0.1,datalen*0.1)
                 if shift > 0:
-                    data[0:datalen-shift] = data[shift:-1]
+                    data[0:datalen-shift] = data[shift:]
                 else:
-                    data[shift:-1] = data[0:datalen-shift]
+                    shift = -shift
+                    data[shift:] = data[0:datalen-shift]
 
         if self.add_noise:
             data += np.random.randn(*data.shape) * np.random.rand(1) * 0.2

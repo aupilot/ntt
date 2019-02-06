@@ -28,7 +28,7 @@ args = parser.parse_args()
 # === Parameters ===
 resume_from = None
 learning_rate_sgd = 0.01
-learning_rate_adam = 0.0002
+learning_rate_adam = 0.0001
 input_depth = 1
 validation_size = 128
 
@@ -46,7 +46,7 @@ training_set = NttDataset(folds_total=args.total_folds,
                           root_dir=data_dir,
                           chunk_exclude=args.fold,
                           validation=False,
-                          add_noise=False, add_shift=None)
+                          add_noise=False, add_shift=True)
 training_generator = data.DataLoader(training_set, **params_train)
 
 validation_set = Subset(NttDataset(folds_total=args.total_folds,
