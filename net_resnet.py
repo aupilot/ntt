@@ -73,7 +73,7 @@ class SuperNet72(nn.Module):
         self.layer5 = self._make_layer(block, 768, num_blocks[4], stride=2)
         self.linear = nn.Linear(1536, num_classes)
         # nn.init.orthogonal_(self.linear.weight)
-        nn.init.constant_(self.linear.weight,0)
+        # nn.init.constant_(self.linear.weight,0)
         self.logsoftmax = nn.LogSoftmax(dim=-1)
         if init_with_ae is not None:
             self.init_with_auto(init_with_ae)
