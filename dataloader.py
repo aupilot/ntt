@@ -20,6 +20,7 @@ def mu_law_encode(signal, quantization_channels=256):
     # quantized_signal = signal.astype(np.int32)
     return signal
 
+
 class NttDataset(data.Dataset):
     """
         The pieces have min len 2 sec. We split them y short frames L sec. So, the number of frames is not really known,
@@ -143,13 +144,13 @@ class NttDataset2(data.Dataset):
         self.add_shift = add_shift
         self.root_dir = root_dir
 
+        self.sr = sample_rate = 16000
         self.cache_size = 128
         self.cache_pieces = []
         self.cache_headpo = []
         self.cache_label  = []
 
         label_file = os.path.join(root_dir, "class_train.tsv")
-        sample_rate = 16000
         self.frame_len = int(frame_len_sec * sample_rate)
 
         np.random.seed(666)
@@ -221,7 +222,26 @@ class NttDataset2(data.Dataset):
         return self.fake_len
 
     def wav_preprocess(self, data):
+
+        # amplitude
+        if np.random.choice([True, False]):
+            amplification_rate = np.random.randn() * 0.2 + 1
+            data = data * amplification_rate
+
+        # time stretch -
+        # TODO: does not work at the meoment - check!
+        if np.random.choice([False, False, False]):
+            stretch_rate = np.random.randn() * 0.3
+            data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
+
+        # pitch shift
+        if np.random.choice([True, False, False]):
+            shift_steps = np.random.choice([-3, -2, -1, 1, 2, 3])
+            data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=24)
+
+        # compress
         data = mu_law_encode(data)
+
         return data
 
 

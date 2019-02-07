@@ -3,7 +3,6 @@ import time
 import os.path
 import argparse
 from multiprocessing import freeze_support
-
 import torch.utils.data as data
 from metrics import f1_score
 from torch.optim.lr_scheduler import MultiStepLR
@@ -11,17 +10,18 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Subset
 from torchsummary import summary
-
 from dataloader import NttDataset, NttDataset2
 from logger import Logger
 from net_resnet import SuperNet740
 from net_simple import CNN1
 
+# export CUDA_VISIBLE_DEVICES=0; python3 a_train.py -f0 -t3 -e45
+
 parser = argparse.ArgumentParser(description='train')
 parser.add_argument('-f', '--fold', type=int, default=0)
 # parser.add_argument('-v', '--val_fold', type=int, default=1)
 parser.add_argument('-t', '--total_folds', type=int, default=3)
-parser.add_argument('-e', '--epochs', type=int, default=300)
+parser.add_argument('-e', '--epochs', type=int, default=50)
 args = parser.parse_args()
 
 
@@ -30,10 +30,11 @@ resume_from = None
 learning_rate_sgd = 0.01
 learning_rate_adam = 0.0001
 input_depth = 1
-validation_size = 128
+validation_size = 512
 
 
-data_dir = "/Volumes/KProSSD/Datasets/ntt/"
+# data_dir = "/Volumes/KProSSD/Datasets/ntt/"
+data_dir = "./data"
 if not os.path.isdir(data_dir):
     # windows
     data_dir = "D:/Datasets/ntt/"
