@@ -33,24 +33,24 @@ input_depth = 1
 validation_size = 512
 
 
-# data_dir = "/Volumes/KProSSD/Datasets/ntt/"
-data_dir = "./data"
+data_dir = "/Volumes/KProSSD/Datasets/ntt/"
+# data_dir = "./data"
 if not os.path.isdir(data_dir):
     # windows
     data_dir = "D:/Datasets/ntt/"
 
 params_train = {'batch_size': 128,
           'shuffle': True,
-          'num_workers': 0}
+          'num_workers': 6}
 params_valid = {'batch_size': 128,
           'shuffle': False,
-          'num_workers': 0}
+          'num_workers': 2}
 
 training_set = NttDataset2(folds_total=args.total_folds,
                           root_dir=data_dir,
                           chunk_exclude=args.fold,
                           validation=False,
-                          add_noise=False, add_shift=True)
+                          )
 training_generator = data.DataLoader(training_set, **params_train)
 
 validation_set = Subset(NttDataset2(folds_total=args.total_folds,
@@ -78,7 +78,7 @@ log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
 # optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00002, nesterov=True)
-optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00002)
+optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00005)
 scheduler = MultiStepLR(optimizer, milestones=[15, 30, 45], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
@@ -167,6 +167,19 @@ def train():
             logger.scalar_summary(tag, value, epoch + 1)
         logger.writer.flush()
 
+        try:
+            # depends on the net structure!!!
+            images1 = cnn.conv1.weight  #
+            images2 = cnn.conv2.weight  #
+            info = {
+                'images1': images1[:24].data.cpu().numpy(),
+                'images2': images2[:24].data.cpu().numpy(),
+            }
+        except:
+            pass
+
+        for tag, images in info.items():
+            logger.image_summary(tag, images, epoch + 1)
         # === save the whole model only if perform better OR every 8th epochs anyway
         if (total < prev_val_loss) or ((epoch + 1) % 8 == 0):
             prev_val_loss = total

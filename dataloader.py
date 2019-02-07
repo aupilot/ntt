@@ -139,9 +139,8 @@ class NttDataset2(data.Dataset):
         Prepare one frame from each wav (heads read wavs). Once a wav come to end, load a new wav and augment it
 
     """
-    def __init__(self, root_dir=None, folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25, add_noise=False, add_shift=False):
-        self.add_noise = add_noise
-        self.add_shift = add_shift
+    def __init__(self, root_dir=None, folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25):
+
         self.root_dir = root_dir
 
         self.sr = sample_rate = 16000
@@ -193,7 +192,7 @@ class NttDataset2(data.Dataset):
             self.cache_label.append(classes_list.index(self.flat_list[piece]['class']))
 
         self.current_piece = 0
-        self.fake_len = 8 * self.num_pieces     # we don't know the real length. Just use something
+        self.fake_len = 4 * self.num_pieces     # we don't know the real length. Just use something
 
     def __getitem__(self, index):
         # get sample from the current piece. We don't care about index
@@ -225,22 +224,21 @@ class NttDataset2(data.Dataset):
 
         # amplitude
         if np.random.choice([True, False]):
-            amplification_rate = np.random.randn() * 0.2 + 1
+            amplification_rate = np.random.randn() * 0.3 + 1
             data = data * amplification_rate
 
-        # time stretch -
-        # TODO: does not work at the meoment - check!
-        if np.random.choice([False, False, False]):
-            stretch_rate = np.random.randn() * 0.3
+        # time stretch
+        if np.random.choice([True, False, False]):
+            stretch_rate = np.random.rand() * 0.4 + 0.8
             data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
 
         # pitch shift
-        if np.random.choice([True, False, False]):
-            shift_steps = np.random.choice([-3, -2, -1, 1, 2, 3])
-            data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=24)
+        if np.random.choice([True, False, False, False]):
+            shift_steps = np.random.choice([-10, -5, 5, 10])
+            data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=128)
 
-        # compress
-        data = mu_law_encode(data)
+        # compress - bad idea. quality gets shit
+        # data = mu_law_encode(data)
 
         return data
 
