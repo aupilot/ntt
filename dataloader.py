@@ -4,6 +4,10 @@ import librosa
 import torch.utils.data as data
 import numpy as np
 
+
+classes_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
+
+
 def mu_law_encode(signal, quantization_channels=256):
     # Manual mu-law companding and mu-bits quantization
     mu = quantization_channels - 1
@@ -124,14 +128,117 @@ class NttTestDataset(data.Dataset):
         return self.num_samples
 
 
+class NttDataset2(data.Dataset):
+    """
+        Init:
+        Load the piece list.
+        Load 128 pieces in memory, augment them and set the reading head to random position.
+
+        Get batch
+        Prepare one frame from each wav (heads read wavs). Once a wav come to end, load a new wav and augment it
+
+    """
+    def __init__(self, root_dir=None, folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25, add_noise=False, add_shift=False):
+        self.add_noise = add_noise
+        self.add_shift = add_shift
+        self.root_dir = root_dir
+
+        self.cache_size = 128
+        self.cache_pieces = []
+        self.cache_headpo = []
+        self.cache_label  = []
+
+        label_file = os.path.join(root_dir, "class_train.tsv")
+        sample_rate = 16000
+        self.frame_len = int(frame_len_sec * sample_rate)
+
+        np.random.seed(666)
+        sample_list = []
+
+        # load metadata
+        with open(label_file, newline='') as csvfile:
+            my_reader = csv.DictReader(csvfile,
+                                       fieldnames=['hash', 'class'],
+                                       delimiter='\t')
+            for row in my_reader:
+                sample_list.append(row)
+
+        chunk_size = len(sample_list) // folds_total
+        chunk_list = [sample_list[i:i + chunk_size] for i in range(0, len(sample_list), chunk_size)]
+
+        if not validation:
+            # make a list with chunk excluded
+            new_list = []
+            for i in range(folds_total):
+                if i != chunk_exclude:
+                    new_list.append(chunk_list[i])
+
+            # convert chunk_list to a flat list of all avaialble pieces
+            self.flat_list = [item for sublist in new_list for item in sublist]
+
+        else:
+            self.flat_list = chunk_list[chunk_exclude]
+
+        self.num_pieces = len(self.flat_list)
+
+        # fill the cache with an initial pieces and head positions
+        for w in range(self.cache_size):
+            piece = np.random.randint(self.num_pieces)
+            file_name = os.path.join(root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
+            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = self.wav_preprocess(data)
+            self.cache_pieces.append(data)
+            self.cache_headpo.append(np.random.randint(len(data) - self.frame_len + 1))
+            self.cache_label.append(classes_list.index(self.flat_list[piece]['class']))
+
+        self.current_piece = 0
+        self.fake_len = 8 * self.num_pieces     # we don't know the real length. Just use something
+
+    def __getitem__(self, index):
+        # get sample from the current piece. We don't care about index
+        st = self.cache_headpo[self.current_piece]
+        en = st + self.frame_len
+        frame = self.cache_pieces[self.current_piece][st:en]
+        label = self.cache_label[self.current_piece]
+        self.cache_headpo[self.current_piece] = en
+        if en+self.frame_len >= len(self.flat_list[self.current_piece]):
+            # if the current piece is finished
+            piece = np.random.randint(self.num_pieces)
+            file_name = os.path.join(self.root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
+            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = self.wav_preprocess(data)
+            self.cache_pieces[self.current_piece] = data
+            self.cache_headpo[self.current_piece] = 0
+            self.cache_label[self.current_piece] = classes_list.index(self.flat_list[piece]['class'])
+
+        self.current_piece += 1
+        if  self.current_piece >= self.cache_size:
+            self.current_piece = 0
+
+        return np.expand_dims(frame, 0), label
+
+    def __len__(self):
+        return self.fake_len
+
+    def wav_preprocess(self, data):
+        data = mu_law_encode(data)
+        return data
+
+
 if __name__ == "__main__":
-    params = {'batch_size': 12,
+    params = {'batch_size': 3,
               'shuffle': True,
               'num_workers': 0}
-    training_set = NttDataset(folds_total=2, chunk_exclude=666, add_noise=True)
-    training_generator = data.DataLoader(training_set, **params)
-    for local_batch, local_labels in training_generator:
-        print(local_batch)
+    # training_set = NttDataset(folds_total=2, chunk_exclude=666, add_noise=True)
+    # training_generator = data.DataLoader(training_set, **params)
+    # for local_batch, local_labels in training_generator:
+    #     print(local_batch)
 
     # ntt = NttTestDataset()
     # print(ntt[1])
+
+    training_set = NttDataset2(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    training_generator = data.DataLoader(training_set, **params)
+
+    for local_batch, local_labels in training_generator:
+        print(local_batch)

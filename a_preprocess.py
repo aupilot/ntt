@@ -12,7 +12,7 @@ frame_len_sec = 0.25
 cut_len = None   # None - for full len of fold
 
 
-classes = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
+classes_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
 
 root_dir = "/Volumes/KProSSD/Datasets/ntt/"
 if not os.path.isdir(root_dir):
@@ -75,7 +75,7 @@ for i in range(len(cache_samples)):
         cache_labels.append(cluss)
 
 cache_data_np = np.array(cache_data)
-cache_labels_np = np.array([classes.index(value) for count, value in enumerate(cache_labels)])
+cache_labels_np = np.array([classes_list.index(value) for count, value in enumerate(cache_labels)])
 
 # np.savez_compressed(f"./data/fold_{this_fold_no}_{folds_total}",cache_data=cache_data_np, cache_labels=cache_labels_np )
 np.savez(f"{out_dir}/fold_{this_chunk_no}_{folds_total}", cache_data=cache_data_np, cache_labels=cache_labels_np)

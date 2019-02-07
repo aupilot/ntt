@@ -12,7 +12,7 @@ import torch.nn as nn
 from torch.utils.data import Subset
 from torchsummary import summary
 
-from dataloader import NttDataset
+from dataloader import NttDataset, NttDataset2
 from logger import Logger
 from net_resnet import SuperNet740
 from net_simple import CNN1
@@ -32,8 +32,11 @@ learning_rate_adam = 0.0001
 input_depth = 1
 validation_size = 128
 
-data_dir = './data'
-# data_dir = './data_small'
+
+data_dir = "/Volumes/KProSSD/Datasets/ntt/"
+if not os.path.isdir(data_dir):
+    # windows
+    data_dir = "D:/Datasets/ntt/"
 
 params_train = {'batch_size': 128,
           'shuffle': True,
@@ -42,14 +45,14 @@ params_valid = {'batch_size': 128,
           'shuffle': False,
           'num_workers': 0}
 
-training_set = NttDataset(folds_total=args.total_folds,
+training_set = NttDataset2(folds_total=args.total_folds,
                           root_dir=data_dir,
                           chunk_exclude=args.fold,
                           validation=False,
                           add_noise=False, add_shift=True)
 training_generator = data.DataLoader(training_set, **params_train)
 
-validation_set = Subset(NttDataset(folds_total=args.total_folds,
+validation_set = Subset(NttDataset2(folds_total=args.total_folds,
                                    root_dir=data_dir,
                                    chunk_exclude=args.fold,
                                    validation=True,),
