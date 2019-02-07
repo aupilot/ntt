@@ -237,6 +237,12 @@ class NttDataset2(data.Dataset):
             shift_steps = np.random.choice([-10, -5, 5, 10])
             data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=128)
 
+        # resample - bad idea! confusing!
+        # if np.random.choice([True, False, False, False]):
+        #     resample_rate = np.random.randn() * 0.05 + 1
+        #     data = librosa.resample(data, self.sr, (self.sr * resample_rate))
+
+
         # compress - bad idea. quality gets shit
         # data = mu_law_encode(data)
 
