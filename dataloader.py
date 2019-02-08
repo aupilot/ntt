@@ -148,6 +148,7 @@ class NttDataset2(data.Dataset):
         self.cache_pieces = []
         self.cache_headpo = []
         self.cache_label  = []
+        self.frame_stride = 64
 
         label_file = os.path.join(root_dir, "class_train.tsv")
         self.frame_len = int(frame_len_sec * sample_rate)
@@ -186,22 +187,28 @@ class NttDataset2(data.Dataset):
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
             data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            # self.cache_headpo.append(np.random.randint(len(data) - self.frame_len + 1))
+            self.cache_headpo.append(0)     # we must use zero to be compatible with spectro
+            self.cache_label.append(classes_list.index(self.flat_list[piece]['class']))
+            # convert data to spectrum at the last step to preserve len() before spectogram
             data = self.wav_preprocess(data)
             self.cache_pieces.append(data)
-            self.cache_headpo.append(np.random.randint(len(data) - self.frame_len + 1))
-            self.cache_label.append(classes_list.index(self.flat_list[piece]['class']))
 
         self.current_piece = 0
         self.fake_len = 4 * self.num_pieces     # we don't know the real length. Just use something
 
     def __getitem__(self, index):
+        frame, label = self.prep_item(index)
+        return np.expand_dims(frame, 0), label
+
+    def prep_item(self, index):
         # get sample from the current piece. We don't care about index
         st = self.cache_headpo[self.current_piece]
         en = st + self.frame_len
         frame = self.cache_pieces[self.current_piece][st:en]
         label = self.cache_label[self.current_piece]
-        self.cache_headpo[self.current_piece] = en
-        if en+self.frame_len >= len(self.flat_list[self.current_piece]):
+        self.cache_headpo[self.current_piece] = st + self.frame_stride
+        if en+self.frame_len >= len(self.cache_pieces[self.current_piece]):
             # if the current piece is finished
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(self.root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
@@ -212,10 +219,13 @@ class NttDataset2(data.Dataset):
             self.cache_label[self.current_piece] = classes_list.index(self.flat_list[piece]['class'])
 
         self.current_piece += 1
-        if  self.current_piece >= self.cache_size:
+        if self.current_piece >= self.cache_size:
             self.current_piece = 0
 
-        return np.expand_dims(frame, 0), label
+        return frame, label
+
+    # def reshape_frame(self, frame):
+    #     return np.expand_dims(frame, 0)
 
     def __len__(self):
         return self.fake_len
@@ -251,6 +261,56 @@ class NttDataset2(data.Dataset):
         return data
 
 
+class NttDataset3(NttDataset2):
+    """
+    Spectrograms.
+    We will pad the spectrogram with blanks to make a constant length (or trim it at the end)
+    """
+    def __init__(self, root_dir=None, folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25):
+        super(NttDataset3, self).__init__(root_dir, folds_total, chunk_exclude, validation, frame_len_sec)
+        self.frame_len = 96
+        self.frame_stride = 8
+
+    def __getitem__(self, index):
+        frame, label = self.prep_item(index)
+        return np.expand_dims(frame, 0), label
+
+    def wav_preprocess(self, data):
+        data = librosa.feature.melspectrogram(data, sr=self.sr)
+        return data
+
+    def prep_item(self, index):
+        # get sample from the current piece. We don't care about index
+        st = self.cache_headpo[self.current_piece]
+        en = st + self.frame_len
+
+        piece_len = self.cache_pieces[self.current_piece].shape[1]
+        if piece_len >= self.frame_len:
+            frame = self.cache_pieces[self.current_piece][:, st:en]
+        else:
+            dif_left = np.floor((self.frame_len - piece_len) / 2).astype('int')
+            dif_right = np.ceil((self.frame_len - piece_len) / 2).astype('int')
+            frame = np.pad(self.cache_pieces[self.current_piece], ((0, 0), (dif_left, dif_right)), 'wrap')
+
+        label = self.cache_label[self.current_piece]
+        self.cache_headpo[self.current_piece] = st + self.frame_stride
+        if en+self.frame_len >= piece_len:
+            # if the current piece is finished
+            piece = np.random.randint(self.num_pieces)
+            file_name = os.path.join(self.root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
+            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = self.wav_preprocess(data)
+            self.cache_pieces[self.current_piece] = data
+            self.cache_headpo[self.current_piece] = 0
+            self.cache_label[self.current_piece] = classes_list.index(self.flat_list[piece]['class'])
+
+        self.current_piece += 1
+        if self.current_piece >= self.cache_size:
+            self.current_piece = 0
+
+        return frame, label
+
+
 if __name__ == "__main__":
     params = {'batch_size': 3,
               'shuffle': True,
@@ -263,7 +323,10 @@ if __name__ == "__main__":
     # ntt = NttTestDataset()
     # print(ntt[1])
 
-    training_set = NttDataset2(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    # training_set = NttDataset2(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    # training_generator = data.DataLoader(training_set, **params)
+
+    training_set = NttDataset3(root_dir="/Volumes/KProSSD/Datasets/ntt/", folds_total=3, chunk_exclude=666)
     training_generator = data.DataLoader(training_set, **params)
 
     for local_batch, local_labels in training_generator:
