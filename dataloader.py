@@ -232,14 +232,16 @@ class NttDataset2(data.Dataset):
             stretch_rate = np.random.rand() * 0.4 + 0.8
             data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
 
-        # pitch shift
-        if np.random.choice([True, False, False, False]):
-            shift_steps = np.random.choice([-10, -5, 5, 10])
-            data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=128)
+        # # pitch shift
+        # if np.random.choice([True, False]):
+        #     shift_steps = np.random.choice([-6, -4, -2, 2, 4, 6])
+        #     data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=128)
 
-        # resample - bad idea! confusing!
-        # if np.random.choice([True, False, False, False]):
-        #     resample_rate = np.random.randn() * 0.05 + 1
+        # resample
+        # https://www.danielpovey.com/files/2015_interspeech_augmentation.pdf
+        # - bad idea? confusing!
+        # resample_rate = np.random.choice([0.9, 1, 1.1])
+        # if resample_rate != 1
         #     data = librosa.resample(data, self.sr, (self.sr * resample_rate))
 
 

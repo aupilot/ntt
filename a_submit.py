@@ -6,8 +6,9 @@ from dataloader import NttTestDataset
 
 
 model_file_list = [
-    "./save/sub_02/net-009-0.179.pkl",
-    "./save/sub_02/net-010-0.218.pkl",
+    "./save/sub_03/net-035-3.061.pkl",
+    "./save/sub_03/net-040-3.212.pkl",
+    "./save/sub_03/net-040-3.618.pkl",
 ]
 
 class_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
@@ -49,7 +50,13 @@ if __name__ == '__main__':
             i += 1
             if i % 100 == 0:
                 tock = time.time()
-                print('Batch {:d} / {:d}, {:.1f} seconds'.format(i, len(test_generator), tock - tick))
+                time_to_go = len(test_generator) / 100 * (tock - tick)
+                print('Batch {:d} / {:d}, {:.1f} sec, to go: {:.0f}'.format(
+                    i,
+                    len(test_generator),
+                    tock - tick),
+                    time_to_go
+                )
                 tick = time.time()
 
     with open('answer.tsv', 'w') as f:
