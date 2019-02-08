@@ -148,7 +148,7 @@ class NttDataset2(data.Dataset):
         self.cache_pieces = []
         self.cache_headpo = []
         self.cache_label  = []
-        self.frame_stride = 64
+        # self.frame_stride = 400         # we use random instead
 
         label_file = os.path.join(root_dir, "class_train.tsv")
         self.frame_len = int(frame_len_sec * sample_rate)
@@ -201,13 +201,14 @@ class NttDataset2(data.Dataset):
         frame, label = self.prep_item(index)
         return np.expand_dims(frame, 0), label
 
+
     def prep_item(self, index):
         # get sample from the current piece. We don't care about index
         st = self.cache_headpo[self.current_piece]
         en = st + self.frame_len
         frame = self.cache_pieces[self.current_piece][st:en]
         label = self.cache_label[self.current_piece]
-        self.cache_headpo[self.current_piece] = st + self.frame_stride
+        self.cache_headpo[self.current_piece] = st + np.random.randint(300,600)
         if en+self.frame_len >= len(self.cache_pieces[self.current_piece]):
             # if the current piece is finished
             piece = np.random.randint(self.num_pieces)
@@ -233,9 +234,9 @@ class NttDataset2(data.Dataset):
     def wav_preprocess(self, data):
 
         # amplitude
-        if np.random.choice([True, False]):
-            amplification_rate = np.random.randn() * 0.3 + 1
-            data = data * amplification_rate
+        # if np.random.choice([True, False]):
+        #     amplification_rate = np.random.randn() * 0.3 + 1
+        #     data = data * amplification_rate
 
         # time stretch
         # if np.random.choice([True, False, False]):
@@ -243,16 +244,16 @@ class NttDataset2(data.Dataset):
         #     data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
 
         # pitch shift
-        if np.random.choice([True, False, False]):
-            shift_steps = np.random.choice([-6, -4, -2, 2, 4, 6])
-            data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=200)
+        # if np.random.choice([True, False, False]):
+        #     shift_steps = np.random.choice([-6, -4, -2, 2, 4, 6])
+        #     data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=200)
 
         # resample
         # https://www.danielpovey.com/files/2015_interspeech_augmentation.pdf
         # - bad idea? confusing!
-        resample_rate = np.random.choice([0.9, 1, 1.1])
-        if resample_rate != 1:
-            data = librosa.resample(data, self.sr, (self.sr * resample_rate))
+        # resample_rate = np.random.choice([0.9, 1, 1.1])
+        # if resample_rate != 1:
+        #     data = librosa.resample(data, self.sr, (self.sr * resample_rate))
 
 
         # compress - bad idea. quality gets shit
@@ -268,12 +269,18 @@ class NttDataset3(NttDataset2):
     """
     def __init__(self, root_dir=None, folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25):
         super(NttDataset3, self).__init__(root_dir, folds_total, chunk_exclude, validation, frame_len_sec)
-        self.frame_len = 96
+        self.frame_len = 128
         self.frame_stride = 8
 
     def __getitem__(self, index):
         frame, label = self.prep_item(index)
-        return np.expand_dims(frame, 0), label
+        # return np.expand_dims(frame, 0), label
+
+        # compatible with resnet
+        frame = np.expand_dims(frame, 0)
+        # frame = np.expand_dims(frame, -1)
+        frame = np.repeat(frame, 3, 0)
+        return frame, label
 
     def wav_preprocess(self, data):
         data = librosa.feature.melspectrogram(data, sr=self.sr)
