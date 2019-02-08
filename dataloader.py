@@ -228,21 +228,21 @@ class NttDataset2(data.Dataset):
             data = data * amplification_rate
 
         # time stretch
-        if np.random.choice([True, False, False]):
-            stretch_rate = np.random.rand() * 0.4 + 0.8
-            data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
+        # if np.random.choice([True, False, False]):
+        #     stretch_rate = np.random.rand() * 0.4 + 0.8
+        #     data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
 
-        # # pitch shift
-        # if np.random.choice([True, False]):
-        #     shift_steps = np.random.choice([-6, -4, -2, 2, 4, 6])
-        #     data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=128)
+        # pitch shift
+        if np.random.choice([True, False, False]):
+            shift_steps = np.random.choice([-6, -4, -2, 2, 4, 6])
+            data = librosa.effects.pitch_shift(data, sr=self.sr, n_steps=shift_steps, bins_per_octave=200)
 
         # resample
         # https://www.danielpovey.com/files/2015_interspeech_augmentation.pdf
         # - bad idea? confusing!
-        # resample_rate = np.random.choice([0.9, 1, 1.1])
-        # if resample_rate != 1
-        #     data = librosa.resample(data, self.sr, (self.sr * resample_rate))
+        resample_rate = np.random.choice([0.9, 1, 1.1])
+        if resample_rate != 1:
+            data = librosa.resample(data, self.sr, (self.sr * resample_rate))
 
 
         # compress - bad idea. quality gets shit
