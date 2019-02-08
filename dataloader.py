@@ -186,15 +186,19 @@ class NttDataset2(data.Dataset):
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
             data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
-            data = self.wav_preprocess(data)
-            self.cache_pieces.append(data)
             self.cache_headpo.append(np.random.randint(len(data) - self.frame_len + 1))
             self.cache_label.append(classes_list.index(self.flat_list[piece]['class']))
+            # convert data to spectrum at the last step to preserve len() before spectogram
+            data = self.wav_preprocess(data)
+            self.cache_pieces.append(data)
 
         self.current_piece = 0
         self.fake_len = 4 * self.num_pieces     # we don't know the real length. Just use something
 
     def __getitem__(self, index):
+        return np.expand_dims(self.prep_item(index), 0)
+
+    def prep_item(self, index):
         # get sample from the current piece. We don't care about index
         st = self.cache_headpo[self.current_piece]
         en = st + self.frame_len
@@ -212,10 +216,13 @@ class NttDataset2(data.Dataset):
             self.cache_label[self.current_piece] = classes_list.index(self.flat_list[piece]['class'])
 
         self.current_piece += 1
-        if  self.current_piece >= self.cache_size:
+        if self.current_piece >= self.cache_size:
             self.current_piece = 0
 
-        return np.expand_dims(frame, 0), label
+        return frame, label
+
+    # def reshape_frame(self, frame):
+    #     return np.expand_dims(frame, 0)
 
     def __len__(self):
         return self.fake_len
@@ -251,6 +258,29 @@ class NttDataset2(data.Dataset):
         return data
 
 
+class NttDataset3(NttDataset2):
+    """
+    Spectrograms.
+    We will pad the spectrogram with blanks to make a constant length (or trim it at the end)
+    """
+    def __init__(self, root_dir=None, folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25):
+        super(NttDataset3, self).__init__(root_dir, folds_total, chunk_exclude, validation, frame_len_sec)
+        self.spectrum_len = 128
+
+    def reshape_frame(self, frame):
+        if frame.shape[1] >= self.spectrum_len:
+            return frame[:,0:self.spectrum_len]
+        else:
+            dif_left = np.floor((self.spectrum_len - frame.shape[1]) / 2).astype('int')
+            dif_right = np.ceil((self.spectrum_len - frame.shape[1]) / 2).astype('int')
+            frame = np.pad(frame, ((0, 0), (dif_left, dif_right)), 'wrap')
+        return frame
+
+    def wav_preprocess(self, data):
+        data = librosa.feature.melspectrogram(data, sr=self.sr)
+        return data
+
+
 if __name__ == "__main__":
     params = {'batch_size': 3,
               'shuffle': True,
@@ -263,7 +293,10 @@ if __name__ == "__main__":
     # ntt = NttTestDataset()
     # print(ntt[1])
 
-    training_set = NttDataset2(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    # training_set = NttDataset2(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    # training_generator = data.DataLoader(training_set, **params)
+
+    training_set = NttDataset3(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
     training_generator = data.DataLoader(training_set, **params)
 
     for local_batch, local_labels in training_generator:
