@@ -8,8 +8,9 @@ class ResNetLight(nn.Module):
     def __init__(self, block, layers):
         self.inplanes = 64
         super(ResNetLight, self).__init__()
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
-                               bias=False)
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=2, bias=False)
+        # self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -51,6 +52,7 @@ class ResNetLight(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
+        x = self.conv2(x)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)

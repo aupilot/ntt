@@ -151,7 +151,7 @@ class NttDataset2(data.Dataset):
         # np.random.seed(int.from_bytes(secrets.token_bytes(2),byteorder='big'))
 
         self.sr = sample_rate = 16000
-        self.cache_size = 128*8
+        self.cache_size = 128*2
         self.cache_pieces = []
         self.cache_headpo = []
         self.cache_label  = []

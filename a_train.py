@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser(description='train')
 parser.add_argument('-f', '--fold', type=int, default=0)
 # parser.add_argument('-v', '--val_fold', type=int, default=1)
 parser.add_argument('-t', '--total_folds', type=int, default=3)
-parser.add_argument('-e', '--epochs', type=int, default=50)
+parser.add_argument('-e', '--epochs', type=int, default=40)
 parser.add_argument('-d', '--dataset', type=int, default=2)
 args = parser.parse_args()
 
@@ -34,7 +34,7 @@ resume_from = None
 learning_rate_sgd = 0.002
 learning_rate_adam = 2e-4
 input_depth = 1
-validation_size = 256
+validation_size = 512
 
 
 data_dir = "/Volumes/KProSSD/Datasets/ntt/"
@@ -108,7 +108,7 @@ logger = Logger('./logs/{}'.format(log_prefix))
 
 # optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00005, nesterov=True)
 optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00005)
-scheduler = MultiStepLR(optimizer, milestones=[15, 30, 45], gamma=0.2)
+scheduler = MultiStepLR(optimizer, milestones=[10, 20, 30], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
 
