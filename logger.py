@@ -31,6 +31,8 @@ class Logger(object):
             except:
                 s = BytesIO()
 
+            if img.shape[0] == 1:
+                img = img.squeeze()
             scipy.misc.toimage(img).save(s, format="png")
 
             # Create an Image object
