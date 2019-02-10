@@ -296,7 +296,19 @@ class NttDataset3(NttDataset2):
         return frame, label
 
     def wav_preprocess(self, data):
+        # resample
+        if np.random.choice([True, False, False]):
+            resample_rate = np.random.choice([0.9, 1.1])
+            if resample_rate != 1:
+                data = librosa.resample(data, self.sr, (self.sr * resample_rate))
+
+        # time stretch +-20%
+        if np.random.choice([True, False, False]):
+            stretch_rate = np.random.rand() * 0.4 + 0.8
+            data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
+
         data = librosa.feature.melspectrogram(data, sr=self.sr)
+
         return np.log10(data + 1e-6)
 
     def prep_spec(self, index):

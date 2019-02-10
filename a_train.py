@@ -32,7 +32,7 @@ args = parser.parse_args()
 # === Parameters ===
 resume_from = None
 learning_rate_sgd = 0.002
-learning_rate_adam = 0.00002
+learning_rate_adam = 2e-4
 input_depth = 1
 validation_size = 256
 
