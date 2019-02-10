@@ -30,6 +30,7 @@ class Logger(object):
                 s = StringIO()
             except:
                 s = BytesIO()
+
             scipy.misc.toimage(img).save(s, format="png")
 
             # Create an Image object

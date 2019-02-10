@@ -1,5 +1,8 @@
 import csv
 import os
+import random
+import secrets
+
 import librosa
 import torch.utils.data as data
 import numpy as np
@@ -144,8 +147,8 @@ class NttDataset2(data.Dataset):
         self.root_dir = root_dir
 
         # we wanted multiprocessing - each thread has its own seed -- does not help!!
-        np.random.seed(np.array(threading.get_ident(), dtype=np.int32))
-        # np.random.seed(666)
+        # np.random.seed(np.array(threading.get_ident(), dtype=np.int32))
+        # np.random.seed(int.from_bytes(secrets.token_bytes(2),byteorder='big'))
 
         self.sr = sample_rate = 16000
         self.cache_size = 128*8
@@ -153,6 +156,7 @@ class NttDataset2(data.Dataset):
         self.cache_headpo = []
         self.cache_label  = []
         # self.frame_stride = 400         # we use random instead
+        self.needs_init = True
 
         label_file = os.path.join(root_dir, "class_train.tsv")
         self.frame_len = int(frame_len_sec * sample_rate)
@@ -187,6 +191,7 @@ class NttDataset2(data.Dataset):
 
         # fill the cache with an initial pieces and head positions
         for w in range(self.cache_size):
+            # piece = random.randrange(self.num_pieces)   # this random uses OS urandom
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
             data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
@@ -201,9 +206,14 @@ class NttDataset2(data.Dataset):
         self.fake_len = 4 * self.num_pieces     # we don't know the real length. Just use something
 
     def __getitem__(self, index):
+        # Here is a trick. If this is the very first call, we will init the random generator.
+        # Otherwise all threads give same batch
+        if self.needs_init:
+            np.random.seed(int.from_bytes(secrets.token_bytes(2), byteorder='big') + index)
+            self.needs_init = False
+
         frame, label = self.prep_item(index)
         return np.expand_dims(frame, 0), label
-
 
     def prep_item(self, index):
         # get sample from the current piece. We don't care about index
@@ -260,11 +270,6 @@ class NttDataset2(data.Dataset):
         return data
 
 
-def wav_preprocess(data, sr):
-    data = librosa.feature.melspectrogram(data, sr=sr)
-    return np.log10(data + 1e-6)
-
-
 class NttDataset3(NttDataset2):
     """
     Spectrograms.
@@ -276,15 +281,23 @@ class NttDataset3(NttDataset2):
         self.frame_stride = 8
 
     def __getitem__(self, index):
+        # Here is a trick. If this is the very first call, we will init the random generator.
+        # Otherwise all threads give same batch
+        if self.needs_init:
+            np.random.seed(int.from_bytes(secrets.token_bytes(2), byteorder='big') + index)
+            self.needs_init = False
+
         frame, label = self.prep_spec(index)
         # return np.expand_dims(frame, 0), label
 
         # make it compatible with resnet
         frame = np.expand_dims(frame, 0)
-        # frame = np.expand_dims(frame, -1)
-        frame = np.repeat(frame, 3, 0)
+        # frame = np.repeat(frame, 3, 0)     # uncomment for a proper ResNet with 3 channel input
         return frame, label
 
+    def wav_preprocess(self, data):
+        data = librosa.feature.melspectrogram(data, sr=self.sr)
+        return np.log10(data + 1e-6)
 
     def prep_spec(self, index):
         # get sample from the current piece. We don't care about index
@@ -306,7 +319,7 @@ class NttDataset3(NttDataset2):
             piece_idx = np.random.randint(self.num_pieces)
             file_name = os.path.join(self.root_dir, "train", self.flat_list[piece_idx]['hash'] + '.wav')
             data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
-            spectrum = wav_preprocess(data, self.sr)
+            spectrum = self.wav_preprocess(data)
             self.cache_pieces[self.current_piece] = spectrum
             self.cache_headpo[self.current_piece] = 0
             self.cache_label[self.current_piece] = classes_list.index(self.flat_list[piece_idx]['class'])
@@ -332,7 +345,6 @@ class NttTestDataset3(data.Dataset):
 
         label_file = os.path.join(self.root_dir, "sample_submit.tsv")
 
-        # np.random.seed(666)
         self.sample_list = []
 
         # load metadata. We will use the hash, but ignore the class for now (replace it with proper one later)
@@ -346,6 +358,10 @@ class NttTestDataset3(data.Dataset):
         self.num_samples = len(self.sample_list)
         # self.frame_len = int(frame_len_sec * sample_rate)
 
+    def wav_preprocess(self, data):
+        data = librosa.feature.melspectrogram(data, sr=self.sample_rate)
+        return np.log10(data + 1e-6)
+
     def __getitem__(self, index):
         # returns a set of frames cut from the wav-piece
         if isinstance(index, list):
@@ -354,12 +370,10 @@ class NttTestDataset3(data.Dataset):
         else:
             file_name = os.path.join(self.root_dir, "test", self.sample_list[index]['hash'] + '.wav')
             data, _ = librosa.load(file_name, sr=None)
-            # data = mu_law_encode(data)
+            # data = mu_law_encode(data)    # that's shit!
 
-            spectrum = wav_preprocess(data,  self.sample_rate)
-
+            spectrum = self.wav_preprocess(data,  self.sample_rate)
             cache_data = []
-
 
             piece_len = spectrum.shape[1]
             if piece_len >= self.frame_len:
@@ -372,7 +386,7 @@ class NttTestDataset3(data.Dataset):
                         break
                     frame = spectrum[:, s:e]
                     frame = np.expand_dims(frame, 0)
-                    frame = np.repeat(frame, 3, axis=0)
+                    # frame = np.repeat(frame, 3, axis=0) # uncomment for a proper ResNet with 3 channel input
                     cache_data.append(frame)
                 cache_data_np = np.array(cache_data)
                 return cache_data_np, self.sample_list[index]['hash']

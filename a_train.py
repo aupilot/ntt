@@ -45,10 +45,10 @@ if not os.path.isdir(data_dir):
 
 params_train = {'batch_size': 128,
           'shuffle': True,
-          'num_workers': 1}
+          'num_workers': 6}
 params_valid = {'batch_size': 128,
           'shuffle': False,
-          'num_workers': 1}
+          'num_workers': 4}
 
 if args.dataset == 2:
     MyDataSet = NttDataset2
@@ -79,18 +79,18 @@ if resume_from is None:
         # cnn = CNN1(input_depth=input_depth)
         cnn = SuperNet740(input_depth=input_depth)
     elif args.dataset == 3:
-        cnn = resnet18(pretrained=False)
-        cnn.layer4 = nn.Sequential(
-            nn.Conv2d(256, 1024, kernel_size=2, stride=1, padding=0, bias=False),
-            nn.BatchNorm2d(1024),
-            nn.LeakyReLU(inplace=True)
-        )
-        num_ftrs = 1024 # cnn.fc.in_features
-        cnn.fc = nn.Sequential(
-            nn.Linear(num_ftrs, 6),
-            nn.LogSoftmax(dim=1)
-        )
-    # elif args.dataset == 4:
+        # cnn = resnet18(pretrained=False)
+        # cnn.layer4 = nn.Sequential(
+        #     nn.Conv2d(256, 1024, kernel_size=2, stride=1, padding=0, bias=False),
+        #     nn.BatchNorm2d(1024),
+        #     nn.LeakyReLU(inplace=True)
+        # )
+        # num_ftrs = 1024 # cnn.fc.in_features
+        # cnn.fc = nn.Sequential(
+        #     nn.Linear(num_ftrs, 6),
+        #     nn.LogSoftmax(dim=1)
+        # )
+        cnn = resnet_light()
 
     cnn.to(device)
     resume_from = 0
@@ -106,8 +106,8 @@ else:
 log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
-optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00005, nesterov=True)
-# optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00005)
+# optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00005, nesterov=True)
+optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00005)
 scheduler = MultiStepLR(optimizer, milestones=[15, 30, 45], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
@@ -127,7 +127,8 @@ with open(save_dir+'_summary.txt', 'w') as sys.stdout:
         print('2D Standard ResNet')
         print(cnn)
         print(optimizer)
-        summary(cnn, (3,128,128))
+        # summary(cnn, (3,128,128))   # uncomment for a proper ResNet with 3 channel input
+        summary(cnn, (1, 128, 128))  # uncomment for a proper ResNet with 3 channel input
 sys.stdout = sys.__stdout__
 
 def train():
