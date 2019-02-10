@@ -2,13 +2,10 @@ import csv
 import time
 import torch
 import torch.utils.data as data
-from dataloader import NttTestDataset
-
+from dataloader import NttTestDataset, NttTestDataset3
 
 model_file_list = [
-    "./save/sub_03/net-035-3.061.pkl",
-    "./save/sub_03/net-040-3.212.pkl",
-    "./save/sub_03/net-040-3.618.pkl",
+    "./save/0210-11332D_fold_0/net-010-0.099.pkl",
 ]
 
 class_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
@@ -21,7 +18,9 @@ if __name__ == '__main__':
     params = {'batch_size': 1,
               'shuffle': False,
               'num_workers': 0}
-    test_set = NttTestDataset()
+    test_set = NttTestDataset3()
+
+    # @@@@@@@@@@@@@@@@
     # test_set.num_samples=100
     test_generator = data.DataLoader(test_set, **params)
 
@@ -41,7 +40,14 @@ if __name__ == '__main__':
             for net in nets:
                 # Here is the trick. The datagen generates batch of 1, but dataloader actually returns data in
                 # batches with vaiable length. So we permutate dims to get a proper tensor
-                outputs = net(data.permute((1,0,2)).to(device))
+                # outputs = net(data.permute((1,0,2)).to(device))
+                try:
+                    a = data.shape[4]
+                    data = data.squeeze(0)
+                    data = data.to(device).type(torch.cuda.FloatTensor)
+                except:
+                    data = data.to(device).type(torch.cuda.FloatTensor)
+                outputs = net(data)
                 classes = torch.softmax(outputs, 1).mean(0)
                 combined_classes += classes
             winner = combined_classes.argmax().item()

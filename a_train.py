@@ -31,10 +31,10 @@ args = parser.parse_args()
 
 # === Parameters ===
 resume_from = None
-learning_rate_sgd = 0.01
-learning_rate_adam = 0.0001
+learning_rate_sgd = 0.002
+learning_rate_adam = 0.00002
 input_depth = 1
-validation_size = 512
+validation_size = 256
 
 
 data_dir = "/Volumes/KProSSD/Datasets/ntt/"
@@ -45,10 +45,10 @@ if not os.path.isdir(data_dir):
 
 params_train = {'batch_size': 128,
           'shuffle': True,
-          'num_workers': 6}
+          'num_workers': 1}
 params_valid = {'batch_size': 128,
           'shuffle': False,
-          'num_workers': 2}
+          'num_workers': 1}
 
 if args.dataset == 2:
     MyDataSet = NttDataset2
@@ -78,18 +78,20 @@ if resume_from is None:
     if args.dataset == 2:
         # cnn = CNN1(input_depth=input_depth)
         cnn = SuperNet740(input_depth=input_depth)
-    else:
-        cnn = resnet18(pretrained=True)
+    elif args.dataset == 3:
+        cnn = resnet18(pretrained=False)
         cnn.layer4 = nn.Sequential(
-            nn.Conv2d(256, 512, kernel_size=2, stride=1, padding=0, bias=False),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(256, 1024, kernel_size=2, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(1024),
             nn.LeakyReLU(inplace=True)
         )
-        num_ftrs = 512 # cnn.fc.in_features
+        num_ftrs = 1024 # cnn.fc.in_features
         cnn.fc = nn.Sequential(
             nn.Linear(num_ftrs, 6),
             nn.LogSoftmax(dim=1)
         )
+    # elif args.dataset == 4:
+
     cnn.to(device)
     resume_from = 0
 else:
@@ -104,8 +106,8 @@ else:
 log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
-# optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00002, nesterov=True)
-optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00005)
+optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00005, nesterov=True)
+# optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00005)
 scheduler = MultiStepLR(optimizer, milestones=[15, 30, 45], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
