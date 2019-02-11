@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser(description='train')
 parser.add_argument('-f', '--fold', type=int, default=0)
 # parser.add_argument('-v', '--val_fold', type=int, default=1)
 parser.add_argument('-t', '--total_folds', type=int, default=3)
-parser.add_argument('-e', '--epochs', type=int, default=40)
+parser.add_argument('-e', '--epochs', type=int, default=48)
 parser.add_argument('-d', '--dataset', type=int, default=2)
 args = parser.parse_args()
 
@@ -45,7 +45,7 @@ if not os.path.isdir(data_dir):
 
 params_train = {'batch_size': 128,
           'shuffle': True,
-          'num_workers': 6}
+          'num_workers': 4}
 params_valid = {'batch_size': 128,
           'shuffle': False,
           'num_workers': 4}
@@ -108,7 +108,7 @@ logger = Logger('./logs/{}'.format(log_prefix))
 
 # optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00005, nesterov=True)
 optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00005)
-scheduler = MultiStepLR(optimizer, milestones=[10, 20, 30], gamma=0.2)
+scheduler = MultiStepLR(optimizer, milestones=[12, 24, 36], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
 

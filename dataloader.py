@@ -6,6 +6,8 @@ import librosa
 import torch.utils.data as data
 import numpy as np
 import threading
+
+from librosa import filters
 from scipy.ndimage import zoom
 import matplotlib.pyplot as plt
 
@@ -272,6 +274,18 @@ class NttDataset2(data.Dataset):
         return data
 
 
+def spectrum(data, sr):
+    data = librosa.feature.melspectrogram(data, sr=sr, n_fft=1024, hop_length=256)
+    data = np.log10(data + 1e-6)
+    return data
+
+
+# def inverse_mel(mel, sr):
+#     mel = np.power(10, mel)
+#     mel_basis = filters.mel(sr, n_fft=1024)
+#     inverted_spectrogram = np.dot(mel_basis.T, mel)
+
+
 class NttDataset3(NttDataset2):
     """
     Spectrograms.
@@ -309,28 +323,31 @@ class NttDataset3(NttDataset2):
         #     stretch_rate = np.random.rand() * 0.4 + 0.8
         #     data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
 
-        data = librosa.feature.melspectrogram(data, sr=self.sr)
-        data = np.log10(data + 1e-6)
+        # data = librosa.feature.mfcc(y=data, sr=self.sr)
+        # data = librosa.feature.melspectrogram(data, sr=self.sr, n_fft=1024, hop_length=256)
+        # data = np.log10(data + 1e-6)
         # data = data - data.mean()
 
+        data = spectrum(data, self.sr)
+
         # zoom the spectrogram
-        if np.random.choice([True, False, False]):
+        if np.random.choice([True, False]):
             zoom_len = np.random.rand() * 0.6 + 0.7   # 30%
-            zoom_frq = np.random.rand() * 0.2 + 0.9   # 10%
+            zoom_frq = 1 # np.random.rand() * 0.1 + 0.95   # 5%
             zoomed = zoom(data, (zoom_frq, zoom_len))
-            if zoom_frq > 1:
+            if zoom_frq >= 1:
                 data = zoomed[0:128, 0:zoomed.shape[1]]
             else:
                 data = np.random.randn(128,zoomed.shape[1])
                 data[0:zoomed.shape[0],0:zoomed.shape[1]] = zoomed[:, :]
 
         # shift pitch UP
-        if np.random.choice([True, False, False]):
+        if np.random.choice([True, False]):
             shift = np.random.choice([4,3,2,1])
             data[0:128-shift, :] = data[shift:128, :]
             data[128-shift:128,:] = np.random.randn(shift, data.shape[1])
         # shift pitch DOWN
-        if np.random.choice([True, False, False]):
+        if np.random.choice([True, False]):
             shift = np.random.choice([1,2,3,4])
             data[shift:128, :] = data[0:128-shift, :]
             data[0:shift,:] = np.random.randn(shift, data.shape[1])
@@ -397,9 +414,10 @@ class NttTestDataset3(data.Dataset):
         # self.frame_len = int(frame_len_sec * sample_rate)
 
     def wav_preprocess(self, data):
-        data = librosa.feature.melspectrogram(data, sr=self.sample_rate)
-        data =  np.log10(data + 1e-6)
+        # data = librosa.feature.melspectrogram(data, sr=self.sample_rate)
+        # data =  np.log10(data + 1e-6)
         # data = data - data.mean()
+        data = spectrum(data, self.sr)
         return data
 
     def __getitem__(self, index):
@@ -460,8 +478,8 @@ if __name__ == "__main__":
     # training_set = NttDataset2(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
     # training_generator = data.DataLoader(training_set, **params)
 
-    # training_set = NttDataset3(root_dir="/Volumes/KProSSD/Datasets/ntt/", folds_total=3, chunk_exclude=666)
-    training_set = NttDataset3(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    training_set = NttDataset3(root_dir="/Volumes/KProSSD/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    # training_set = NttDataset3(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
     training_generator = data.DataLoader(training_set, **params)
 
     for local_batch, local_labels in training_generator:
