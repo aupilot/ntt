@@ -394,7 +394,7 @@ class NttTestDataset3(data.Dataset):
             # windows
             self.root_dir = "D:/Datasets/ntt/"
 
-        self.sample_rate = 16000
+        self.sr = 16000
         self.frame_len = 128
         self.stride = 16
 
