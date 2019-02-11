@@ -5,7 +5,7 @@ import torch.utils.data as data
 from dataloader import NttTestDataset, NttTestDataset3
 
 model_file_list = [
-    "./save/0210-11332D_fold_0/net-010-0.099.pkl",
+    "./save/sub_04/net-030-0.001.pkl",
 ]
 
 class_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
@@ -56,8 +56,8 @@ if __name__ == '__main__':
             i += 1
             if i % 100 == 0:
                 tock = time.time()
-                time_to_go = (len(test_generator)-i) * len(test_generator) / 100 * (tock - tick)
-                print('Batch {:d} / {:d}, {:.1f} sec, to go: {:.0f}'.format(
+                time_to_go = (len(test_generator)-i) / 100 * (tock - tick)
+                print('Batch {:d} / {:d}, {:.1f} sec, to go: {:.0f} s'.format(
                     i,
                     len(test_generator),
                     tock - tick,

@@ -2,11 +2,13 @@ import csv
 import os
 import random
 import secrets
-
 import librosa
 import torch.utils.data as data
 import numpy as np
 import threading
+from scipy.ndimage import zoom
+import matplotlib.pyplot as plt
+
 
 classes_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
 
@@ -296,20 +298,44 @@ class NttDataset3(NttDataset2):
         return frame, label
 
     def wav_preprocess(self, data):
-        # resample
-        if np.random.choice([True, False, False]):
-            resample_rate = np.random.choice([0.9, 1.1])
-            if resample_rate != 1:
-                data = librosa.resample(data, self.sr, (self.sr * resample_rate))
+        # == resample
+        # if np.random.choice([True, False, False]):
+        #     resample_rate = np.random.choice([0.9, 1.1])
+        #     if resample_rate != 1:
+        #         data = librosa.resample(data, self.sr, (self.sr * resample_rate))
 
-        # time stretch +-20%
-        if np.random.choice([True, False, False]):
-            stretch_rate = np.random.rand() * 0.4 + 0.8
-            data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
+        # == time stretch +-20%
+        # if np.random.choice([True, False, False]):
+        #     stretch_rate = np.random.rand() * 0.4 + 0.8
+        #     data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
 
         data = librosa.feature.melspectrogram(data, sr=self.sr)
+        data = np.log10(data + 1e-6)
+        # data = data - data.mean()
 
-        return np.log10(data + 1e-6)
+        # zoom the spectrogram
+        if np.random.choice([True, False, False]):
+            zoom_len = np.random.rand() * 0.6 + 0.7   # 30%
+            zoom_frq = np.random.rand() * 0.2 + 0.9   # 10%
+            zoomed = zoom(data, (zoom_frq, zoom_len))
+            if zoom_frq > 1:
+                data = zoomed[0:128, 0:zoomed.shape[1]]
+            else:
+                data = np.random.randn(128,zoomed.shape[1])
+                data[0:zoomed.shape[0],0:zoomed.shape[1]] = zoomed[:, :]
+
+        # shift pitch UP
+        if np.random.choice([True, False, False]):
+            shift = np.random.choice([4,3,2,1])
+            data[0:128-shift, :] = data[shift:128, :]
+            data[128-shift:128,:] = np.random.randn(shift, data.shape[1])
+        # shift pitch DOWN
+        if np.random.choice([True, False, False]):
+            shift = np.random.choice([1,2,3,4])
+            data[shift:128, :] = data[0:128-shift, :]
+            data[0:shift,:] = np.random.randn(shift, data.shape[1])
+
+        return data
 
     def prep_spec(self, index):
         # get sample from the current piece. We don't care about index
@@ -372,7 +398,9 @@ class NttTestDataset3(data.Dataset):
 
     def wav_preprocess(self, data):
         data = librosa.feature.melspectrogram(data, sr=self.sample_rate)
-        return np.log10(data + 1e-6)
+        data =  np.log10(data + 1e-6)
+        # data = data - data.mean()
+        return data
 
     def __getitem__(self, index):
         # returns a set of frames cut from the wav-piece
@@ -384,7 +412,7 @@ class NttTestDataset3(data.Dataset):
             data, _ = librosa.load(file_name, sr=None)
             # data = mu_law_encode(data)    # that's shit!
 
-            spectrum = self.wav_preprocess(data,  self.sample_rate)
+            spectrum = self.wav_preprocess(data)
             cache_data = []
 
             piece_len = spectrum.shape[1]
@@ -408,7 +436,7 @@ class NttTestDataset3(data.Dataset):
                 dif_right = np.ceil((self.frame_len - piece_len) / 2).astype('int')
                 spectrum = np.pad(spectrum, ((0, 0), (dif_left, dif_right)), 'wrap')
                 spectrum = np.expand_dims(spectrum, 0)
-                spectrum = np.repeat(spectrum, 3, axis=0)
+                # spectrum = np.repeat(spectrum, 3, axis=0)    # uncomment for a proper ResNet with 3 channel input
                 return spectrum, self.sample_list[index]['hash']
 
     def __len__(self):
@@ -432,7 +460,8 @@ if __name__ == "__main__":
     # training_set = NttDataset2(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
     # training_generator = data.DataLoader(training_set, **params)
 
-    training_set = NttDataset3(root_dir="/Volumes/KProSSD/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    # training_set = NttDataset3(root_dir="/Volumes/KProSSD/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    training_set = NttDataset3(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
     training_generator = data.DataLoader(training_set, **params)
 
     for local_batch, local_labels in training_generator:
