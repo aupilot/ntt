@@ -210,7 +210,7 @@ def train():
             images2 = cnn.conv2.weight  #
             info = {
                 'images1': images1[:24].data.cpu().numpy(),
-                'images2': images2[:24].data.cpu().numpy(),
+                # 'images2': images2[:24].data.cpu().numpy(),
             }
         except:
             pass
