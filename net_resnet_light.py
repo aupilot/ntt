@@ -18,11 +18,14 @@ class ResNetLight(nn.Module):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         # self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-        self.avgpool = nn.AvgPool2d(8, stride=1)
+        self.layer4 = nn.Conv2d(256, 512, kernel_size=(8,1), stride=1, padding=0, bias=False)
+        # self.avgpool = nn.AvgPool2d(8, stride=1)
+        self.avgpool = nn.AvgPool2d((1,8), stride=1)
         # self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.fc1 = nn.Linear(256, 512)
-        self.drop = nn.Dropout2d(0.5)
-        self.fc2 = nn.Linear(512, 6)
+        self.drop1 = nn.Dropout2d(0.5)
+        self.fc1 = nn.Linear(512, 1024)
+        self.drop2 = nn.Dropout2d(0.5)
+        self.fc2 = nn.Linear(1024, 6)
         self.softmax = nn.LogSoftmax(dim=1)
 
         for m in self.modules():
@@ -60,12 +63,13 @@ class ResNetLight(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)      #128,8,8
-        # x = self.layer4(x)
+        x = self.layer4(x)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
+        x = self.drop1(x)
         x = self.fc1(x)
-        x = self.drop(x)
+        x = self.drop2(x)
         x = self.fc2(x)
         x = self.softmax(x)
 

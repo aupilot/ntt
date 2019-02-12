@@ -344,6 +344,16 @@ class NttDataset3(NttDataset2):
 
         data = spectrum(data, self.sr)
 
+        # amplify spectrogram
+        if np.random.choice([True, False]):
+            amplify = np.random.rand() * 0.6 + 0.7   # +-30%
+            data = data * amplify
+
+        # add gaussian noise
+        if np.random.choice([True, False]):
+            noise_level = np.random.rand() * data.std() * 1.0
+            data = data + np.random.randn(data.shape[0],data.shape[1]) * noise_level
+
         # zoom the spectrogram
         if np.random.choice([True, False]):
             zoom_len = np.random.rand() * 0.6 + 0.7   # 30%
@@ -360,11 +370,15 @@ class NttDataset3(NttDataset2):
             shift = np.random.choice([4,3,2,1])
             data[0:128-shift, :] = data[shift:128, :]
             data[128-shift:128,:] = np.random.randn(shift, data.shape[1])
+
         # shift pitch DOWN
         if np.random.choice([True, False]):
             shift = np.random.choice([1,2,3,4])
             data[shift:128, :] = data[0:128-shift, :]
             data[0:shift,:] = np.random.randn(shift, data.shape[1])
+
+        # plt.imshow(data)
+        # plt.show()
 
         return data
 
