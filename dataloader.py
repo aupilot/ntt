@@ -312,6 +312,20 @@ class NttDataset3(NttDataset2):
         return frame, label
 
     def wav_preprocess(self, data):
+        '''
+        augmentation:
+        1. Deep Convolutional Neural Networks and Data Augmentation for Environmental Sound Classification
+        2. http://www.mirlab.org/conference_papers/International_Conference/ISMIR%202015/website/articles_splitted/264_Paper.pdf
+        - dynamic range compression
+        - add background sounds
+        - added noise and dropout
+        - random filters
+        - loudness (to spectrogram)
+        - pitch shift +-10% ???
+        - tempo shift ???
+        '''
+
+
         # == resample
         # if np.random.choice([True, False, False]):
         #     resample_rate = np.random.choice([0.9, 1.1])
