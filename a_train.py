@@ -107,14 +107,14 @@ else:
 log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
-# optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.00005, nesterov=True)
-optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.00005)
+optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.0001, nesterov=True)
+# optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.0001)
 scheduler = MultiStepLR(optimizer, milestones=[12, 24, 36], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
 
 # create a dir for new model checkpoints
-save_dir = './save/{}/'.format(log_prefix)
+save_dir = f'./save/{log_prefix}/'
 os.makedirs(save_dir, exist_ok=True)
 
 # write model description in plain text
