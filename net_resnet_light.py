@@ -1,6 +1,35 @@
+import torch
+
 from torchvision.models.resnet import BasicBlock
 import torch.nn as nn
+import torch.nn.functional as F
 import math
+
+
+# change the layer order within resnet block
+class NewBlock2(BasicBlock):
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(NewBlock2, self).__init__(inplanes=inplanes, planes=planes, stride=stride, downsample=downsample)
+        self.bn0 = nn.BatchNorm2d(inplanes)
+        del self.bn2
+
+    def forward(self, x):
+        residual = x
+
+        out = self.bn0(x)
+        out = F.leaky_relu(out)
+        out = self.conv1(out)
+
+        out = self.bn1(out)
+        out = F.leaky_relu(out)
+        out = self.conv2(out)
+
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        return out
 
 
 class ResNetLight(nn.Module):
@@ -23,10 +52,10 @@ class ResNetLight(nn.Module):
         self.avgpool = nn.AvgPool2d((1,8), stride=1)
         # self.fc = nn.Linear(512 * block.expansion, num_classes)
         self.drop1 = nn.Dropout2d(0.5)
-        self.fc1 = nn.Linear(512, 1024)
+        self.fc1 = nn.Linear(896, 1024)
         self.drop2 = nn.Dropout2d(0.5)
         self.fc2 = nn.Linear(1024, 6)
-        self.softmax = nn.LogSoftmax(dim=1)
+        self.logsoftmax = nn.LogSoftmax(dim=-1)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -60,18 +89,22 @@ class ResNetLight(nn.Module):
         x = self.relu(x)
         x = self.maxpool(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)      #128,8,8
-        x = self.layer4(x)
+        x1 = self.layer1(x)
+        x2 = self.layer2(x1)
+        x3 = self.layer3(x2)      #128,8,8
+        x4 = self.layer4(x3)
 
-        x = self.avgpool(x)
+        skip2 = F.avg_pool2d(x2, (16, 3), stride=2, padding=(0, 1))
+        skip3 = F.avg_pool2d(x3, (8,3), stride=1, padding=(0,1))
+        xx = torch.cat([x4, skip3, skip2], 1)
+
+        x = self.avgpool(xx)
         x = x.view(x.size(0), -1)
         x = self.drop1(x)
         x = self.fc1(x)
         x = self.drop2(x)
         x = self.fc2(x)
-        x = self.softmax(x)
+        x = self.logsoftmax(x)
 
         return x
 
@@ -85,4 +118,13 @@ def resnet_light(pretrained=False, **kwargs):
     model = ResNetLight(BasicBlock, [2, 2, 2, 2], **kwargs)
     # if pretrained:
     #     model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
+    return model
+
+
+def resnet_light2(pretrained=False, **kwargs):
+    """Constructs a ResNet model with 1-channel input and small number of layers.
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = ResNetLight(NewBlock2, [2, 2, 2, 2], **kwargs)
     return model

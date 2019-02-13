@@ -345,12 +345,12 @@ class NttDataset3(NttDataset2):
         data = spectrum(data, self.sr)
 
         # amplify spectrogram
-        if np.random.choice([True, False]):
+        if np.random.choice([True, True]):
             amplify = np.random.rand() * 0.6 + 0.7   # +-30%
             data = data * amplify
 
         # add gaussian noise
-        if np.random.choice([True, False]):
+        if np.random.choice([True, True]):
             noise_level = np.random.rand() * data.std() * 1.0
             data = data + np.random.randn(data.shape[0],data.shape[1]) * noise_level
 
@@ -410,7 +410,6 @@ class NttDataset3(NttDataset2):
         self.current_piece = np.random.randint(0, self.cache_size)
 
         return frame, label
-
 
 
 class NttTestDataset3(data.Dataset):
