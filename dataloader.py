@@ -155,7 +155,7 @@ class NttDataset2(data.Dataset):
         # np.random.seed(int.from_bytes(secrets.token_bytes(2),byteorder='big'))
 
         self.sr = sample_rate = 16000
-        self.cache_size = 128*2
+        self.cache_size = 128
         self.cache_pieces = []
         self.cache_headpo = []
         self.cache_label  = []
@@ -207,7 +207,9 @@ class NttDataset2(data.Dataset):
             self.cache_pieces.append(spectrum)
 
         self.current_piece = 0
-        self.fake_len = 4 * self.num_pieces     # we don't know the real length. Just use something
+        self.fake_len = self.num_pieces * 8    # we don't know the real length. Just use something
+        # we wanted to make it ridiculously high to prevent calling constructor every now and then,
+        # but can't do that - it allocates too much RAM
 
     def __getitem__(self, index):
         # Here is a trick. If this is the very first call, we will init the random generator.
@@ -274,11 +276,12 @@ class NttDataset2(data.Dataset):
         return data
 
 
+# ================================================================================
 def spectrum(data, sr):
     data = librosa.feature.melspectrogram(data, sr=sr, n_fft=1024, hop_length=256)
     data = np.log10(data + 1e-6)
     return data
-
+# ================================================================================
 
 # def inverse_mel(mel, sr):
 #     mel = np.power(10, mel)
@@ -291,7 +294,11 @@ class NttDataset3(NttDataset2):
     Spectrograms.
     We will pad the spectrogram with blanks to make a constant length (or trim it at the end)
     """
-    def __init__(self, root_dir=None, folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25):
+    def __init__(self, root_dir=None, folds_total=2, chunk_exclude=0, validation=False, frame_len_sec=0.25, add_bg=False):
+        if add_bg:
+            self.backgrounds = np.load('./background/backgrounds.npy')
+        self.add_bg = add_bg
+        print(f"Dataloader constructor called{np.random.rand(1)}")
         super(NttDataset3, self).__init__(root_dir, folds_total, chunk_exclude, validation, frame_len_sec)
         self.frame_len = 128
         self.frame_stride = 8
@@ -376,6 +383,15 @@ class NttDataset3(NttDataset2):
             shift = np.random.choice([1,2,3,4])
             data[shift:128, :] = data[0:128-shift, :]
             data[0:shift,:] = np.random.randn(shift, data.shape[1])
+
+        # add no more than 25% of bg sounds
+        if self.add_bg:
+            bg = self.backgrounds[np.random.randint(0,2000),:,:]
+            bg = bg / bg.std() * data.std()
+            if data.shape[1] < bg.shape[1]:
+                data = data + bg[:, 0:data.shape[1]] * np.random.rand() * 0.25
+            else:
+                data[:, 0:bg.shape[1]] = data[:, 0:bg.shape[1]] + bg * np.random.rand() * 0.25
 
         # plt.imshow(data)
         # plt.show()
@@ -505,8 +521,8 @@ if __name__ == "__main__":
     # training_set = NttDataset2(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
     # training_generator = data.DataLoader(training_set, **params)
 
-    training_set = NttDataset3(root_dir="/Volumes/KProSSD/Datasets/ntt/", folds_total=3, chunk_exclude=666)
-    # training_set = NttDataset3(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666)
+    # training_set = NttDataset3(root_dir="/Volumes/KProSSD/Datasets/ntt/", folds_total=3, chunk_exclude=666, add_bg=True)
+    training_set = NttDataset3(root_dir="D:/Datasets/ntt/", folds_total=3, chunk_exclude=666, add_bg=True)
     training_generator = data.DataLoader(training_set, **params)
 
     for local_batch, local_labels in training_generator:

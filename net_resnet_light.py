@@ -35,6 +35,7 @@ class NewBlock2(BasicBlock):
 class ResNetLight(nn.Module):
 
     def __init__(self, block, layers):
+        self.name = "ResNetSkip"
         self.inplanes = 64
         super(ResNetLight, self).__init__()
         self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=1, bias=False)
