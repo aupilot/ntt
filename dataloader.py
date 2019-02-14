@@ -365,15 +365,17 @@ class NttDataset3(NttDataset2):
                 data = np.random.randn(128,zoomed.shape[1])
                 data[0:zoomed.shape[0],0:zoomed.shape[1]] = zoomed[:, :]
 
+        pitch_aug = np.random.choice(['none', 'up', 'down'])
+        
         # shift pitch UP
-        if np.random.choice([True, False]):
-            shift = np.random.choice([4,3,2,1])
+        if pitch_aug is 'up':
+            shift = np.random.choice([3,2,1])
             data[0:128-shift, :] = data[shift:128, :]
             data[128-shift:128,:] = np.random.randn(shift, data.shape[1])
 
         # shift pitch DOWN
-        if np.random.choice([True, False]):
-            shift = np.random.choice([1,2,3,4])
+        if pitch_aug is 'down':
+            shift = np.random.choice([1,2,3])
             data[shift:128, :] = data[0:128-shift, :]
             data[0:shift,:] = np.random.randn(shift, data.shape[1])
 
