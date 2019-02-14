@@ -5,9 +5,10 @@ import torch.utils.data as data
 from dataloader import NttTestDataset, NttTestDataset3
 
 model_file_list = [
-    "./save/0213-19442D_fold_2/net-015-0.025.pkl",
-    "./save/0213-17472D_fold_1/net-015-0.068.pkl",
-    "./save/0213-16202D_fold_0/net-015-0.033.pkl",
+
+    "./save/0214-22322D_fold_0/net-016-0.104.pkl",
+    # "./save/0213-17472D_fold_1/net-015-0.068.pkl",
+    # "./save/0213-16202D_fold_0/net-015-0.033.pkl",
 ]
 
 class_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
