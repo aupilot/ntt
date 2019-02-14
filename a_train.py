@@ -44,11 +44,16 @@ if not os.path.isdir(data_dir):
     data_dir = "D:/Datasets/ntt/"
 
 params_train = {'batch_size': 128,
-          'shuffle': True,
-          'num_workers': 4}
+          'shuffle': False,
+          'num_workers': 6,
+          'pin_memory': True,
+                }
+
 params_valid = {'batch_size': 128,
           'shuffle': False,
-          'num_workers': 4}
+          'num_workers': 3,
+          'pin_memory': True,
+               }
 
 if args.dataset == 2:
     MyDataSet = NttDataset2
@@ -61,6 +66,7 @@ training_set = MyDataSet(folds_total=args.total_folds,
                           root_dir=data_dir,
                           chunk_exclude=args.fold,
                           validation=False,
+                          add_bg=True
                           )
 training_generator = data.DataLoader(training_set, **params_train)
 
