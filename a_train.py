@@ -15,7 +15,7 @@ from torchsummary import summary
 from dataloader import NttDataset, NttDataset2, NttDataset3
 from logger import Logger
 from net_resnet import SuperNet740
-from net_resnet_light import resnet_light, resnet_light2
+from net_resnet_light import resnet_light, resnet_light2, resnet_vlight
 from net_simple import CNN1
 
 # export CUDA_VISIBLE_DEVICES=0; python3 a_train.py -f0 -t3 -e45
@@ -43,7 +43,7 @@ if not os.path.isdir(data_dir):
     # windows
     data_dir = "D:/Datasets/ntt/"
 
-params_train = {'batch_size': 128,
+params_train = {'batch_size': 64,
           'shuffle': False,
           'num_workers': 6,
           'pin_memory': True,
@@ -97,7 +97,8 @@ if resume_from is None:
         #     nn.LogSoftmax(dim=1)
         # )
         # cnn = resnet_light()
-        cnn = resnet_light2()
+        # cnn = resnet_light2()
+        cnn = resnet_vlight()    # <<========
 
     cnn.to(device)
     resume_from = 0
@@ -113,8 +114,8 @@ else:
 log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
-# optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.0001, nesterov=True)
-optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.0001)
+optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.0001, nesterov=True)
+# optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.0001)
 scheduler = MultiStepLR(optimizer, milestones=[12, 24, 36], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")

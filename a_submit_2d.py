@@ -6,7 +6,7 @@ from dataloader import NttTestDataset, NttTestDataset3
 
 model_file_list = [
 
-    "./save/0214-22322D_fold_0/net-016-0.104.pkl",
+    "./save/0215-12042D_fold_0/net-007-0.097.pkl",
     # "./save/0213-17472D_fold_1/net-015-0.068.pkl",
     # "./save/0213-16202D_fold_0/net-015-0.033.pkl",
 ]
