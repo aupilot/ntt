@@ -132,7 +132,7 @@ class ResNetVeryLight(nn.Module):
         # self.fc = nn.Linear(512 * block.expansion, num_classes)
         self.drop1 = nn.Dropout2d(0.6)
         self.fc1 = nn.Linear(448, 512)
-        self.drop2 = nn.Dropout2d(0.6)
+        self.drop2 = nn.Dropout2d(0.7)
         self.fc2 = nn.Linear(512, 6)
         self.logsoftmax = nn.LogSoftmax(dim=-1)
 

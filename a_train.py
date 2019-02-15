@@ -31,7 +31,7 @@ args = parser.parse_args()
 
 # === Parameters ===
 resume_from = None
-learning_rate_sgd = 0.002
+learning_rate_sgd = 0.001
 learning_rate_adam = 2e-5
 input_depth = 1
 validation_size = 512
@@ -43,7 +43,7 @@ if not os.path.isdir(data_dir):
     # windows
     data_dir = "D:/Datasets/ntt/"
 
-params_train = {'batch_size': 64,
+params_train = {'batch_size': 32,
           'shuffle': False,
           'num_workers': 6,
           'pin_memory': True,
