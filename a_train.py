@@ -34,7 +34,7 @@ resume_from = None
 learning_rate_sgd = 0.001
 learning_rate_adam = 2e-5
 input_depth = 1
-validation_size = 512
+validation_size = 2048
 
 
 data_dir = "/Volumes/KProSSD/Datasets/ntt/"
