@@ -24,14 +24,14 @@ parser = argparse.ArgumentParser(description='train')
 parser.add_argument('-f', '--fold', type=int, default=0)
 # parser.add_argument('-v', '--val_fold', type=int, default=1)
 parser.add_argument('-t', '--total_folds', type=int, default=3)
-parser.add_argument('-e', '--epochs', type=int, default=48)
+parser.add_argument('-e', '--epochs', type=int, default=72)
 parser.add_argument('-d', '--dataset', type=int, default=2)
 args = parser.parse_args()
 
 
 # === Parameters ===
 resume_from = None
-learning_rate_sgd = 0.001
+learning_rate_sgd = 0.002
 learning_rate_adam = 2e-5
 input_depth = 1
 validation_size = 2048
@@ -43,7 +43,7 @@ if not os.path.isdir(data_dir):
     # windows
     data_dir = "D:/Datasets/ntt/"
 
-params_train = {'batch_size': 32,
+params_train = {'batch_size': 64,
           'shuffle': False,
           'num_workers': 6,
           'pin_memory': True,

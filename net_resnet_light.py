@@ -127,12 +127,12 @@ class ResNetVeryLight(nn.Module):
         self.layer3 = self._make_layer(block, 128, layers[2], stride=2)
         # self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         self.layer4 = nn.Conv2d(128, 256, kernel_size=(8,1), stride=1, padding=0, bias=False)
-        # self.avgpool = nn.AvgPool2d(8, stride=1)
-        self.avgpool = nn.AvgPool2d((1,8), stride=1)
+        # self.avgpool = nn.AvgPool2d((1,8), stride=1)
+        self.avgpool = nn.MaxPool2d((1,8), stride=1)
         # self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.drop1 = nn.Dropout2d(0.6)
+        self.drop1 = nn.Dropout2d(0.5)
         self.fc1 = nn.Linear(448, 512)
-        self.drop2 = nn.Dropout2d(0.7)
+        self.drop2 = nn.Dropout2d(0.5)
         self.fc2 = nn.Linear(512, 6)
         self.logsoftmax = nn.LogSoftmax(dim=-1)
 
@@ -164,7 +164,7 @@ class ResNetVeryLight(nn.Module):
     def forward(self, x):
         x = self.conv1(x)
         x = self.conv2(x)
-        x = self.bn1(x)
+        # x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
 

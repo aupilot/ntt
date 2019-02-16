@@ -1,14 +1,14 @@
 import csv
 import time
 import torch
-import torch.utils.data as data
-from dataloader import NttTestDataset, NttTestDataset3
+import torch.utils.data as spec
+from dataloader import NttTestDataset3
+import matplotlib.pyplot as plt
 
 model_file_list = [
 
-    "./save/0215-13392D_fold_0/net-033-0.025.pkl",
-    # "./save/0213-17472D_fold_1/net-015-0.068.pkl",
-    # "./save/0213-16202D_fold_0/net-015-0.033.pkl",
+    "./save/0216-08382D_fold_0/net-052-0.034.pkl",
+
 ]
 
 class_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     # @@@@@@@@@@@@@@@@
     # test_set.num_samples=100
-    test_generator = data.DataLoader(test_set, **params)
+    test_generator = spec.DataLoader(test_set, **params)
 
     nets = []
     answer = list(dict())
@@ -38,19 +38,19 @@ if __name__ == '__main__':
     with torch.set_grad_enabled(False):
         i = 0
         tick = time.time()
-        for data, hash in test_generator:
+        for spec, hash, data in test_generator:
             combined_classes = torch.zeros(6, device=device)
             for net in nets:
                 # Here is the trick. The datagen generates batch of 1, but dataloader actually returns data in
                 # batches with vaiable length. So we permutate dims to get a proper tensor
                 # outputs = net(data.permute((1,0,2)).to(device))
                 try:
-                    a = data.shape[4]
-                    data = data.squeeze(0)
-                    data = data.to(device).type(torch.cuda.FloatTensor)
+                    a = spec.shape[4]
+                    spec = spec.squeeze(0)
+                    spec = spec.to(device).type(torch.cuda.FloatTensor)
                 except:
-                    data = data.to(device).type(torch.cuda.FloatTensor)
-                outputs = net(data)
+                    spec = spec.to(device).type(torch.cuda.FloatTensor)
+                outputs = net(spec)
                 classes = torch.softmax(outputs, 1).mean(0)
                 combined_classes += classes
             winner = combined_classes.argmax().item()
