@@ -198,7 +198,8 @@ class NttDataset2(data.Dataset):
             # piece = random.randrange(self.num_pieces)   # this random uses OS urandom
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
-            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = load_wav(file_name)  # load, notmalise, trim blank ends
             # self.cache_headpo.append(np.random.randint(len(data) - self.frame_len + 1))
             self.cache_headpo.append(0)     # we must use zero to be compatible with spectro
             self.cache_label.append(classes_list.index(self.flat_list[piece]['class']))
@@ -232,7 +233,8 @@ class NttDataset2(data.Dataset):
             # if the current piece is finished
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(self.root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
-            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = load_wav(file_name)  # load, notmalise, trim blank ends
             data = self.wav_preprocess(data)
             self.cache_pieces[self.current_piece] = data
             self.cache_headpo[self.current_piece] = 0
@@ -435,7 +437,8 @@ class NttDataset3(NttDataset2):
             # if the current piece is finished
             piece_idx = np.random.randint(self.num_pieces)
             file_name = os.path.join(self.root_dir, "train", self.flat_list[piece_idx]['hash'] + '.wav')
-            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = load_wav(file_name)  # load, notmalise, trim blank ends
             spectrum = self.wav_preprocess(data)
             self.cache_pieces[self.current_piece] = spectrum
             self.cache_headpo[self.current_piece] = 0

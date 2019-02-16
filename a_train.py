@@ -4,8 +4,6 @@ import os.path
 import argparse
 from multiprocessing import freeze_support
 import torch.utils.data as data
-from torchvision.models import resnet18
-
 from metrics import f1_score
 from torch.optim.lr_scheduler import MultiStepLR
 import torch
@@ -24,7 +22,7 @@ parser = argparse.ArgumentParser(description='train')
 parser.add_argument('-f', '--fold', type=int, default=0)
 # parser.add_argument('-v', '--val_fold', type=int, default=1)
 parser.add_argument('-t', '--total_folds', type=int, default=3)
-parser.add_argument('-e', '--epochs', type=int, default=72)
+parser.add_argument('-e', '--epochs', type=int, default=120)
 parser.add_argument('-d', '--dataset', type=int, default=2)
 args = parser.parse_args()
 
@@ -116,7 +114,7 @@ logger = Logger('./logs/{}'.format(log_prefix))
 
 optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.0001, nesterov=True)
 # optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.0001)
-scheduler = MultiStepLR(optimizer, milestones=[12, 24, 36], gamma=0.2)
+scheduler = MultiStepLR(optimizer, milestones=[35, 65, 95], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
 
