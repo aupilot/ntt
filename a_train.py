@@ -4,8 +4,6 @@ import os.path
 import argparse
 from multiprocessing import freeze_support
 import torch.utils.data as data
-from torchvision.models import resnet18
-
 from metrics import f1_score
 from torch.optim.lr_scheduler import MultiStepLR
 import torch
@@ -15,7 +13,7 @@ from torchsummary import summary
 from dataloader import NttDataset, NttDataset2, NttDataset3
 from logger import Logger
 from net_resnet import SuperNet740
-from net_resnet_light import resnet_light, resnet_light2
+from net_resnet_light import resnet_light, resnet_light2, resnet_vlight, resnet_b
 from net_simple import CNN1
 
 # export CUDA_VISIBLE_DEVICES=0; python3 a_train.py -f0 -t3 -e45
@@ -24,7 +22,7 @@ parser = argparse.ArgumentParser(description='train')
 parser.add_argument('-f', '--fold', type=int, default=0)
 # parser.add_argument('-v', '--val_fold', type=int, default=1)
 parser.add_argument('-t', '--total_folds', type=int, default=3)
-parser.add_argument('-e', '--epochs', type=int, default=48)
+parser.add_argument('-e', '--epochs', type=int, default=120)
 parser.add_argument('-d', '--dataset', type=int, default=2)
 args = parser.parse_args()
 
@@ -32,9 +30,9 @@ args = parser.parse_args()
 # === Parameters ===
 resume_from = None
 learning_rate_sgd = 0.002
-learning_rate_adam = 2e-4
+learning_rate_adam = 2e-5
 input_depth = 1
-validation_size = 512
+validation_size = 2048
 
 
 data_dir = "/Volumes/KProSSD/Datasets/ntt/"
@@ -43,9 +41,9 @@ if not os.path.isdir(data_dir):
     # windows
     data_dir = "D:/Datasets/ntt/"
 
-params_train = {'batch_size': 128,
+params_train = {'batch_size': 64,
           'shuffle': False,
-          'num_workers': 6,
+          'num_workers': 3,
           'pin_memory': True,
                 }
 
@@ -97,7 +95,9 @@ if resume_from is None:
         #     nn.LogSoftmax(dim=1)
         # )
         # cnn = resnet_light()
-        cnn = resnet_light2()
+        # cnn = resnet_light2()
+        # cnn = resnet_vlight()    # <<========
+        cnn = resnet_b()    # <<========
 
     cnn.to(device)
     resume_from = 0
@@ -115,7 +115,7 @@ logger = Logger('./logs/{}'.format(log_prefix))
 
 optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.0001, nesterov=True)
 # optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.0001)
-scheduler = MultiStepLR(optimizer, milestones=[12, 24, 36], gamma=0.2)
+scheduler = MultiStepLR(optimizer, milestones=[35, 65, 95], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
 

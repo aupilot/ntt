@@ -198,7 +198,8 @@ class NttDataset2(data.Dataset):
             # piece = random.randrange(self.num_pieces)   # this random uses OS urandom
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
-            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = load_wav(file_name)  # load, notmalise, trim blank ends
             # self.cache_headpo.append(np.random.randint(len(data) - self.frame_len + 1))
             self.cache_headpo.append(0)     # we must use zero to be compatible with spectro
             self.cache_label.append(classes_list.index(self.flat_list[piece]['class']))
@@ -232,7 +233,8 @@ class NttDataset2(data.Dataset):
             # if the current piece is finished
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(self.root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
-            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = load_wav(file_name)  # load, notmalise, trim blank ends
             data = self.wav_preprocess(data)
             self.cache_pieces[self.current_piece] = data
             self.cache_headpo[self.current_piece] = 0
@@ -281,7 +283,23 @@ def spectrum(data, sr):
     data = librosa.feature.melspectrogram(data, sr=sr, n_fft=1024, hop_length=256)
     data = np.log10(data + 1e-6)
     return data
+
+
+def load_wav(file_name):
+    data, sr = librosa.load(file_name, sr=None)
+    librosa.output.write_wav('_orig.wav', data, sr=sr)
+
+    # Normalise volume
+    data = librosa.util.normalize(data)
+    librosa.output.write_wav('_pcen.wav', data, sr=sr)
+
+    # Trim the beginning and ending silence
+    data, _ = librosa.effects.trim(data, top_db=25)
+    librosa.output.write_wav('_trim.wav', data, sr=sr)
+
+    return data
 # ================================================================================
+
 
 # def inverse_mel(mel, sr):
 #     mel = np.power(10, mel)
@@ -372,15 +390,17 @@ class NttDataset3(NttDataset2):
                 data = np.random.randn(128,zoomed.shape[1])
                 data[0:zoomed.shape[0],0:zoomed.shape[1]] = zoomed[:, :]
 
+        pitch_aug = np.random.choice(['none', 'up', 'down'])
+        
         # shift pitch UP
-        if np.random.choice([True, False]):
-            shift = np.random.choice([4,3,2,1])
+        if pitch_aug is 'up':
+            shift = np.random.choice([3,2,1])
             data[0:128-shift, :] = data[shift:128, :]
             data[128-shift:128,:] = np.random.randn(shift, data.shape[1])
 
         # shift pitch DOWN
-        if np.random.choice([True, False]):
-            shift = np.random.choice([1,2,3,4])
+        if pitch_aug is 'down':
+            shift = np.random.choice([1,2,3])
             data[shift:128, :] = data[0:128-shift, :]
             data[0:shift,:] = np.random.randn(shift, data.shape[1])
 
@@ -417,7 +437,8 @@ class NttDataset3(NttDataset2):
             # if the current piece is finished
             piece_idx = np.random.randint(self.num_pieces)
             file_name = os.path.join(self.root_dir, "train", self.flat_list[piece_idx]['hash'] + '.wav')
-            data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
+            data = load_wav(file_name)  # load, notmalise, trim blank ends
             spectrum = self.wav_preprocess(data)
             self.cache_pieces[self.current_piece] = spectrum
             self.cache_headpo[self.current_piece] = 0
@@ -456,13 +477,6 @@ class NttTestDataset3(data.Dataset):
         self.num_samples = len(self.sample_list)
         # self.frame_len = int(frame_len_sec * sample_rate)
 
-    def wav_preprocess(self, data):
-        # data = librosa.feature.melspectrogram(data, sr=self.sample_rate)
-        # data =  np.log10(data + 1e-6)
-        # data = data - data.mean()
-        data = spectrum(data, self.sr)
-        return data
-
     def __getitem__(self, index):
         # returns a set of frames cut from the wav-piece
         if isinstance(index, list):
@@ -470,35 +484,48 @@ class NttTestDataset3(data.Dataset):
             raise NotImplementedError
         else:
             file_name = os.path.join(self.root_dir, "test", self.sample_list[index]['hash'] + '.wav')
-            data, _ = librosa.load(file_name, sr=None)
-            # data = mu_law_encode(data)    # that's shit!
 
-            spectrum = self.wav_preprocess(data)
+            data = load_wav(file_name)      # loads, normalises and trims
+            spec = spectrum(data, self.sr)
+
             cache_data = []
 
-            piece_len = spectrum.shape[1]
+            piece_len = spec.shape[1]
             if piece_len >= self.frame_len:
                 # frame = self.cache_pieces[self.current_piece][:, st:en]
                 # num_frames = (piece_len - self.frame_len) // self.stride + 1
-                for c in range(8):      # no more than 8 frames
-                    s = c * self.frame_len
-                    e = (c+1) * self.frame_len
+                s = 0
+                for c in range(32):      # no more than 32 frames
+                    # s = c * self.frame_len
+                    e = s + self.frame_len
+
+                    # sanity check
                     if e > piece_len:
                         break
-                    frame = spectrum[:, s:e]
+
+                    frame = spec[:, s:e]
                     frame = np.expand_dims(frame, 0)
                     # frame = np.repeat(frame, 3, axis=0) # uncomment for a proper ResNet with 3 channel input
                     cache_data.append(frame)
-                cache_data_np = np.array(cache_data)
-                return cache_data_np, self.sample_list[index]['hash']
 
+                    if e == piece_len:
+                        break
+
+                    if e+self.frame_len//3 > piece_len:
+                        s = s + piece_len - e           # if less than wanted stride - we still use the tail!
+                    else:
+                        s = s + self.frame_len // 3     # we wanted stride = 1/3 of the frame len
+
+                cache_data_np = np.array(cache_data)
+                return cache_data_np, self.sample_list[index]['hash'], data
             else:
                 dif_left = np.floor((self.frame_len - piece_len) / 2).astype('int')
                 dif_right = np.ceil((self.frame_len - piece_len) / 2).astype('int')
-                spectrum = np.pad(spectrum, ((0, 0), (dif_left, dif_right)), 'wrap')
-                spectrum = np.expand_dims(spectrum, 0)
+                spec = np.pad(spec, ((0, 0), (dif_left, dif_right)), 'mean')
+                # spectrum = np.pad(spectrum, ((0, 0), (dif_left, dif_right)), 'wrap')
+                spec = np.expand_dims(spec, 0)
                 # spectrum = np.repeat(spectrum, 3, axis=0)    # uncomment for a proper ResNet with 3 channel input
-                return spectrum, self.sample_list[index]['hash']
+                return spec, self.sample_list[index]['hash'], data
 
     def __len__(self):
         return self.num_samples
