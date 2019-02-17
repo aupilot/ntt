@@ -386,7 +386,7 @@ class NttDataset3(NttDataset2):
 
         # add no more than 25% of bg sounds
         if self.add_bg:
-            bg = self.backgrounds[np.random.randint(0,2000),:,:]
+            bg = self.backgrounds[np.random.randint(0,self.backgrounds.shape[0]),:,:]
             bg = bg / bg.std() * data.std()
             if data.shape[1] < bg.shape[1]:
                 data = data + bg[:, 0:data.shape[1]] * np.random.rand() * 0.25
