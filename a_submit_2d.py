@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 model_file_list = [
 
-    "./save/0216-19262D_fold_0/net-049-0.036.pkl",
+    "./save/0217-08242D_fold_0/net-069-0.050.pkl",
 
 ]
 

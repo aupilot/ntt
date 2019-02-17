@@ -43,7 +43,7 @@ if not os.path.isdir(data_dir):
 
 params_train = {'batch_size': 64,
           'shuffle': False,
-          'num_workers': 6,
+          'num_workers': 3,
           'pin_memory': True,
                 }
 
