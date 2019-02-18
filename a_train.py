@@ -29,8 +29,8 @@ args = parser.parse_args()
 
 # === Parameters ===
 resume_from = None
-learning_rate_sgd = 0.002
-learning_rate_adam = 2e-5
+learning_rate_sgd = 0.0005
+# learning_rate_adam = 5e-5
 input_depth = 1
 validation_size = 1024
 
@@ -109,12 +109,12 @@ log_prefix = time.strftime("%m%d-%H%M", time.localtime())
 if args.dataset == 2:
     log_prefix += cnn.name
 else:
-    log_prefix += '_VLight-Adm'
+    log_prefix += '_VLight-SGD'
 log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
-# optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.0001, nesterov=True)
-optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.0001)
+optimizer = torch.optim.SGD(cnn.parameters(), lr=learning_rate_sgd, momentum=0.9, weight_decay=0.0001, nesterov=True)
+# optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate_adam, weight_decay=0.0001)
 scheduler = MultiStepLR(optimizer, milestones=[35, 65, 95], gamma=0.2)
 criterion = nn.NLLLoss()
 # print("WARNING: make sure that the NN model has softmax!!!")
