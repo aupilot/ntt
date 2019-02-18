@@ -29,10 +29,10 @@ args = parser.parse_args()
 
 # === Parameters ===
 resume_from = None
-learning_rate_sgd = 0.002
-learning_rate_adam = 2e-5
+learning_rate_sgd = 0.0005
+# learning_rate_adam = 5e-5
 input_depth = 1
-validation_size = 2048
+validation_size = 1024
 
 
 data_dir = "/Volumes/KProSSD/Datasets/ntt/"
@@ -96,8 +96,8 @@ if resume_from is None:
         # )
         # cnn = resnet_light()
         # cnn = resnet_light2()
-        # cnn = resnet_vlight()    # <<========
-        cnn = resnet_b()    # <<========
+        cnn = resnet_vlight()    # <<========
+        # cnn = resnet_b()    # <<========
 
     cnn.to(device)
     resume_from = 0
@@ -109,7 +109,7 @@ log_prefix = time.strftime("%m%d-%H%M", time.localtime())
 if args.dataset == 2:
     log_prefix += cnn.name
 else:
-    log_prefix += '2D'
+    log_prefix += '_VLight-SGD'
 log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
