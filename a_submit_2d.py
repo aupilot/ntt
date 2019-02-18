@@ -7,9 +7,19 @@ import matplotlib.pyplot as plt
 
 model_file_list = [
 
-    "./save/0217-08242D_fold_0/net-069-0.050.pkl",
+    "./save/0217-16232D_fold_1/net-088-0.042.pkl",
 
 ]
+
+weights_list = [
+    1.0,
+    1.0,
+    1.0,
+    0.4,
+    0.4,
+    0.4
+]
+
 
 class_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
 
