@@ -10,11 +10,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Subset
 from torchsummary import summary
-from dataloader import NttDataset, NttDataset2, NttDataset3
+from dataloader import NttDataset2, NttDataset3
 from logger import Logger
-from net_resnet import SuperNet740
-from net_resnet_light import resnet_light, resnet_light2, resnet_vlight, resnet_b
-from net_simple import CNN1
+# from net_resnet import SuperNet740
+from net_resnet_light import resnet_vlight, resnet_b
 
 # export CUDA_VISIBLE_DEVICES=0; python3 a_train.py -f0 -t3 -e45
 
@@ -24,6 +23,7 @@ parser.add_argument('-f', '--fold', type=int, default=0)
 parser.add_argument('-t', '--total_folds', type=int, default=3)
 parser.add_argument('-e', '--epochs', type=int, default=120)
 parser.add_argument('-d', '--dataset', type=int, default=2)
+parser.add_argument('-n', '--network', type=int, default=0)
 args = parser.parse_args()
 
 
@@ -35,8 +35,8 @@ input_depth = 1
 validation_size = 1024
 
 
-data_dir = "/Volumes/KProSSD/Datasets/ntt/"
-# data_dir = "./data"
+# data_dir = "/Volumes/KProSSD/Datasets/ntt/"
+data_dir = "./data"
 if not os.path.isdir(data_dir):
     # windows
     data_dir = "D:/Datasets/ntt/"
@@ -81,24 +81,17 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 if resume_from is None:
     if args.dataset == 2:
         # cnn = CNN1(input_depth=input_depth)
-        cnn = SuperNet740(input_depth=input_depth)
+        # cnn = SuperNet740(input_depth=input_depth)
+        raise NotImplementedError
     elif args.dataset == 3:
-        # cnn = resnet18(pretrained=False)
-        # cnn.layer4 = nn.Sequential(
-        #     nn.Conv2d(256, 1024, kernel_size=2, stride=1, padding=0, bias=False),
-        #     nn.BatchNorm2d(1024),
-        #     nn.LeakyReLU(inplace=True)
-        # )
-        # num_ftrs = 1024 # cnn.fc.in_features
-        # cnn.fc = nn.Sequential(
-        #     nn.Linear(num_ftrs, 6),
-        #     nn.LogSoftmax(dim=1)
-        # )
-        # cnn = resnet_light()
-        # cnn = resnet_light2()
-        cnn = resnet_vlight()    # <<========
-        # cnn = resnet_b()    # <<========
-
+        if args.network == 0:
+            cnn = resnet_vlight()
+            print('Training with Net 0: resnet_vlight')
+        elif args.network == 1:
+            cnn = resnet_b()
+            print('Training with Net 1: resnet_b')
+        else:
+            raise NotImplementedError
     cnn.to(device)
     resume_from = 0
 else:
@@ -109,7 +102,7 @@ log_prefix = time.strftime("%m%d-%H%M", time.localtime())
 if args.dataset == 2:
     log_prefix += cnn.name
 else:
-    log_prefix += '_VLight-SGD'
+    log_prefix += f'_Net{args.network}-SGD'
 log_prefix += f'_fold_{args.fold}'
 logger = Logger('./logs/{}'.format(log_prefix))
 
@@ -135,7 +128,7 @@ with open(save_dir+'_summary.txt', 'w') as sys.stdout:
         print(cnn)
         print(optimizer)
         # summary(cnn, (3,128,128))   # uncomment for a proper ResNet with 3 channel input
-        summary(cnn, (1, 128, 128))  # uncomment for a proper ResNet with 3 channel input
+        summary(cnn, (1, 128, 128))
 sys.stdout = sys.__stdout__
 
 def train():

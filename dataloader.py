@@ -1,31 +1,16 @@
 import csv
 import os
-import random
 import secrets
 import librosa
 import torch.utils.data as data
 import numpy as np
-import threading
 
 from librosa import filters
 from scipy.ndimage import zoom
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 classes_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
-
-
-def mu_law_encode(signal, quantization_channels=256):
-    # Manual mu-law companding and mu-bits quantization
-    mu = quantization_channels - 1
-
-    magnitude = np.log1p(mu * np.abs(signal)) / np.log1p(mu)
-    signal = np.sign(signal) * magnitude
-
-    # Map signal from [-1, +1] to [0, mu-1]
-    # signal = (signal + 1) / 2 * mu + 0.5
-    # quantized_signal = signal.astype(np.int32)
-    return signal
 
 
 class NttDataset(data.Dataset):
@@ -150,16 +135,11 @@ class NttDataset2(data.Dataset):
 
         self.root_dir = root_dir
 
-        # we wanted multiprocessing - each thread has its own seed -- does not help!!
-        # np.random.seed(np.array(threading.get_ident(), dtype=np.int32))
-        # np.random.seed(int.from_bytes(secrets.token_bytes(2),byteorder='big'))
-
         self.sr = sample_rate = 16000
         self.cache_size = 128
         self.cache_pieces = []
         self.cache_headpo = []
         self.cache_label  = []
-        # self.frame_stride = 400         # we use random instead
         self.needs_init = True
 
         label_file = os.path.join(root_dir, "class_train.tsv")
@@ -195,12 +175,9 @@ class NttDataset2(data.Dataset):
 
         # fill the cache with an initial pieces and head positions
         for w in range(self.cache_size):
-            # piece = random.randrange(self.num_pieces)   # this random uses OS urandom
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
-            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
             data = load_wav(file_name)  # load, notmalise, trim blank ends
-            # self.cache_headpo.append(np.random.randint(len(data) - self.frame_len + 1))
             self.cache_headpo.append(0)     # we must use zero to be compatible with spectro
             self.cache_label.append(classes_list.index(self.flat_list[piece]['class']))
             # convert data to spectrum at the last step to preserve len() before spectogram
@@ -233,7 +210,6 @@ class NttDataset2(data.Dataset):
             # if the current piece is finished
             piece = np.random.randint(self.num_pieces)
             file_name = os.path.join(self.root_dir, "train", self.flat_list[piece]['hash'] + '.wav')
-            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
             data = load_wav(file_name)  # load, notmalise, trim blank ends
             data = self.wav_preprocess(data)
             self.cache_pieces[self.current_piece] = data
@@ -271,7 +247,6 @@ class NttDataset2(data.Dataset):
         # if resample_rate != 1:
         #     data = librosa.resample(data, self.sr, (self.sr * resample_rate))
 
-
         # compress - bad idea. quality gets shit
         # data = mu_law_encode(data)
 
@@ -287,24 +262,18 @@ def spectrum(data, sr):
 
 def load_wav(file_name):
     data, sr = librosa.load(file_name, sr=None)
-    librosa.output.write_wav('_orig.wav', data, sr=sr)
+    # librosa.output.write_wav('_orig.wav', data, sr=sr)
 
     # Normalise volume
     data = librosa.util.normalize(data)
-    librosa.output.write_wav('_pcen.wav', data, sr=sr)
+    # librosa.output.write_wav('_pcen.wav', data, sr=sr)
 
     # Trim the beginning and ending silence
     data, _ = librosa.effects.trim(data, top_db=25)
-    librosa.output.write_wav('_trim.wav', data, sr=sr)
+    # librosa.output.write_wav('_trim.wav', data, sr=sr)
 
     return data
 # ================================================================================
-
-
-# def inverse_mel(mel, sr):
-#     mel = np.power(10, mel)
-#     mel_basis = filters.mel(sr, n_fft=1024)
-#     inverted_spectrogram = np.dot(mel_basis.T, mel)
 
 
 class NttDataset3(NttDataset2):
@@ -338,7 +307,7 @@ class NttDataset3(NttDataset2):
 
     def wav_preprocess(self, data):
         '''
-        augmentation:
+        Possible augmentation:
         1. Deep Convolutional Neural Networks and Data Augmentation for Environmental Sound Classification
         2. http://www.mirlab.org/conference_papers/International_Conference/ISMIR%202015/website/articles_splitted/264_Paper.pdf
         - dynamic range compression
@@ -349,23 +318,6 @@ class NttDataset3(NttDataset2):
         - pitch shift +-10% ???
         - tempo shift ???
         '''
-
-
-        # == resample
-        # if np.random.choice([True, False, False]):
-        #     resample_rate = np.random.choice([0.9, 1.1])
-        #     if resample_rate != 1:
-        #         data = librosa.resample(data, self.sr, (self.sr * resample_rate))
-
-        # == time stretch +-20%
-        # if np.random.choice([True, False, False]):
-        #     stretch_rate = np.random.rand() * 0.4 + 0.8
-        #     data = librosa.effects.time_stretch(data, stretch_rate) # positive - faster
-
-        # data = librosa.feature.mfcc(y=data, sr=self.sr)
-        # data = librosa.feature.melspectrogram(data, sr=self.sr, n_fft=1024, hop_length=256)
-        # data = np.log10(data + 1e-6)
-        # data = data - data.mean()
 
         data = spectrum(data, self.sr)
 
@@ -437,7 +389,6 @@ class NttDataset3(NttDataset2):
             # if the current piece is finished
             piece_idx = np.random.randint(self.num_pieces)
             file_name = os.path.join(self.root_dir, "train", self.flat_list[piece_idx]['hash'] + '.wav')
-            # data, _ = librosa.load(file_name, sr=None)  # keep sample rate the same
             data = load_wav(file_name)  # load, notmalise, trim blank ends
             spectrum = self.wav_preprocess(data)
             self.cache_pieces[self.current_piece] = spectrum
@@ -453,7 +404,8 @@ class NttTestDataset3(data.Dataset):
     """
     """
     def __init__(self):
-        self.root_dir = "/Volumes/KProSSD/Datasets/ntt/"
+        # self.root_dir = "/Volumes/KProSSD/Datasets/ntt/"
+        self.root_dir = "./data"
         if not os.path.isdir(self.root_dir):
             # windows
             self.root_dir = "D:/Datasets/ntt/"
@@ -475,7 +427,7 @@ class NttTestDataset3(data.Dataset):
                 self.sample_list.append(row)
 
         self.num_samples = len(self.sample_list)
-        # self.frame_len = int(frame_len_sec * sample_rate)
+
 
     def __getitem__(self, index):
         # returns a set of frames cut from the wav-piece
@@ -529,7 +481,6 @@ class NttTestDataset3(data.Dataset):
 
     def __len__(self):
         return self.num_samples
-
 
 
 if __name__ == "__main__":
