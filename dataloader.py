@@ -287,15 +287,19 @@ def spectrum(data, sr):
 
 def load_wav(file_name):
     data, sr = librosa.load(file_name, sr=None)
-    librosa.output.write_wav('_orig.wav', data, sr=sr)
+    # librosa.output.write_wav('_orig.wav', data, sr=sr)
 
     # Normalise volume
     data = librosa.util.normalize(data)
-    librosa.output.write_wav('_pcen.wav', data, sr=sr)
+    # librosa.output.write_wav('_pcen.wav', data, sr=sr)
 
-    # Trim the beginning and ending silence
-    data, _ = librosa.effects.trim(data, top_db=25)
-    librosa.output.write_wav('_trim.wav', data, sr=sr)
+    # # Trim the beginning and ending silence
+    # data, _ = librosa.effects.trim(data, top_db=25)
+    # librosa.output.write_wav('_trim.wav', data, sr=sr)
+
+    # remove all silences
+    data = cut_silence(data)
+    # librosa.output.write_wav('_trim.wav', data, sr=sr)
 
     return data
 
@@ -504,7 +508,6 @@ class NttTestDataset3(data.Dataset):
             file_name = os.path.join(self.root_dir, "test", self.sample_list[index]['hash'] + '.wav')
 
             data = load_wav(file_name)      # loads, normalises and trims
-            data = cut_silence(data)
             spec = spectrum(data, self.sr)
 
             cache_data = []

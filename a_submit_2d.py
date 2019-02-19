@@ -6,8 +6,8 @@ from dataloader import NttTestDataset3
 import matplotlib.pyplot as plt
 
 model_file_list = [
-    "./save/0218-08492D_fold_0/net-008-0.112.pkl",
-    "./save/0218-1415_VLight-Adm_fold_0/net-004-0.242.pkl",
+    "./save/0218-08292D_fold_0/net-076-0.020.pkl",
+    # "./save/0218-1415_VLight-Adm_fold_0/net-004-0.242.pkl",
 ]
 
 model_weigh_list = [
