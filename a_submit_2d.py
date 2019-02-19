@@ -6,9 +6,13 @@ from dataloader import NttTestDataset3
 import matplotlib.pyplot as plt
 
 model_file_list = [
+    "./save/0218-08492D_fold_0/net-008-0.112.pkl",
+    "./save/0218-1415_VLight-Adm_fold_0/net-004-0.242.pkl",
+]
 
-    "./save/0217-08242D_fold_0/net-069-0.050.pkl",
-
+model_weigh_list = [
+    1.0,
+    0.3
 ]
 
 class_list = ['MA_CH', 'MA_AD', 'MA_EL', 'FE_CH', 'FE_EL', 'FE_AD']
@@ -40,7 +44,7 @@ if __name__ == '__main__':
         tick = time.time()
         for spec, hash, data in test_generator:
             combined_classes = torch.zeros(6, device=device)
-            for net in nets:
+            for weight, net in zip(model_weigh_list, nets):
                 # Here is the trick. The datagen generates batch of 1, but dataloader actually returns data in
                 # batches with vaiable length. So we permutate dims to get a proper tensor
                 # outputs = net(data.permute((1,0,2)).to(device))
@@ -52,7 +56,7 @@ if __name__ == '__main__':
                     spec = spec.to(device).type(torch.cuda.FloatTensor)
                 outputs = net(spec)
                 classes = torch.softmax(outputs, 1).mean(0)
-                combined_classes += classes
+                combined_classes += classes * weight
             winner = combined_classes.argmax().item()
             answer.append({'hash': hash[0], 'class': class_list[winner]})
             # print(winner)
