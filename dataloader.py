@@ -298,6 +298,23 @@ def load_wav(file_name):
     librosa.output.write_wav('_trim.wav', data, sr=sr)
 
     return data
+
+
+def cut_silence(data, top_db=25):
+    intervals = librosa.effects.split(data, top_db=top_db,  frame_length=1024, hop_length=256)
+    new_data = np.zeros(1)
+    for interval in intervals:
+        start = interval[0]
+        end = interval[1]
+        audio_chunk = data[start:end]
+
+        new_data = np.concatenate((new_data, audio_chunk),0)
+
+    return new_data
+
+
+
+
 # ================================================================================
 
 
@@ -454,6 +471,7 @@ class NttTestDataset3(data.Dataset):
     """
     def __init__(self):
         self.root_dir = "/Volumes/KProSSD/Datasets/ntt/"
+        # self.root_dir = "./data"
         if not os.path.isdir(self.root_dir):
             # windows
             self.root_dir = "D:/Datasets/ntt/"
@@ -486,6 +504,7 @@ class NttTestDataset3(data.Dataset):
             file_name = os.path.join(self.root_dir, "test", self.sample_list[index]['hash'] + '.wav')
 
             data = load_wav(file_name)      # loads, normalises and trims
+            data = cut_silence(data)
             spec = spectrum(data, self.sr)
 
             cache_data = []
