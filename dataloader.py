@@ -421,8 +421,8 @@ class NttTestDataset3(data.Dataset):
     """
     """
     def __init__(self):
-        self.root_dir = "/Volumes/KProSSD/Datasets/ntt/"
-        # self.root_dir = "./data"
+        # self.root_dir = "/Volumes/KProSSD/Datasets/ntt/"
+        self.root_dir = "./data"
         if not os.path.isdir(self.root_dir):
             # windows
             self.root_dir = "D:/Datasets/ntt/"
