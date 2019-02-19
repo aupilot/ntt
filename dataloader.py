@@ -298,7 +298,7 @@ def load_wav(file_name):
     # librosa.output.write_wav('_trim.wav', data, sr=sr)
 
     # remove all silences
-    data = cut_silence(data)
+    data = cut_silence(data, top_db=25)
     # librosa.output.write_wav('_trim.wav', data, sr=sr)
 
     return data
