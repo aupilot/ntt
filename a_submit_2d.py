@@ -6,9 +6,9 @@ from dataloader import NttTestDataset3
 import matplotlib.pyplot as plt
 
 model_file_list = [
-    "./save/0218-2112_VLight-SGD_fold_0/net-043-0.035.pkl",
-    "./save/0218-2115_VLight-SGD_fold_1/net-055-0.041.pkl",
-    "./save/0218-2115_VLight-SGD_fold_2/net-049-0.046.pkl",
+    "./save/0219-2218_VLight-SGD_fold_0/net-093-0.009.pkl",
+    "./save/0219-2218_VLight-SGD_fold_1/net-100-0.018.pkl",
+    "./save/0219-2218_VLight-SGD_fold_2/net-097-0.035.pkl",
     "./save/0217-16232D_fold_2/net-050-0.022.pkl",
     "./save/0217-16232D_fold_1/net-063-0.027.pkl",
     "./save/0218-08292D_fold_0/net-054-0.027.pkl",
